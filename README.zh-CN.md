@@ -172,10 +172,15 @@ rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012
 
 ## 各基座下已验证的具体测试文件
 
+这里需要特别说明：`TTFT` 只有在**输入规模接近、测试口径接近**时才有严格可比性。因此下面不只写模型文件和吞吐，还同时标注使用的上下文、测试口径，以及引用结果时对应的 `prompt_tokens` 规模。统一 formal 的短 prompt 结果彼此最可比；最小请求 probe 和临时吞吐探针更适合作为工程参考，而不是严格横比。
+
 ### Gemma 4
 
 - `gemma-4-E2B-it-Q4_K_M.gguf`
   - 近似文件大小：`3.11 GB`
+  - 使用上下文：`131072`
+  - 测试口径：formal 短 prompt 部署口径
+  - 输入规模：`prompt_tokens = 63`
   - `ROCm 6`：`C1 42.317 tok/s`，`TTFT 281.5 ms`
   - `ROCm 7`：`C1 43.890 tok/s`，`TTFT 258.6 ms`
 
@@ -183,35 +188,56 @@ rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012
 
 - `gemma-3n-E4B-it-UD-Q4_K_XL.gguf`
   - 近似文件大小：`5.39 GB`
+  - 使用上下文：`16384`
+  - 测试口径：formal 短 prompt 部署口径
+  - 输入规模：`prompt_tokens = 59`
   - `ROCm 6`：`C1 23.341 tok/s`，`TTFT 416.9 ms`
 - `gemma-3n-E4B-it-Q4_K_M.gguf`
   - 近似文件大小：`4.54 GB`
+  - 使用上下文：`32768`
+  - 测试口径：formal 短 prompt 部署口径
+  - 输入规模：`prompt_tokens = 59`
   - `ROCm 6`：`C1 22.794 tok/s`，`TTFT 419.9 ms`
 
 ### Qwen3.5
 
 - `CoPaw-flash-9B-20260330-q4.gguf`
   - 近似文件大小：`5.63 GB`
+  - 使用上下文：`65536`
+  - 测试口径：formal 短 prompt 部署口径
+  - 输入规模：`prompt_tokens = 161`
   - `ROCm 6`：`C1 20.048 tok/s`，`TTFT 162.1 ms`
   - `ROCm 7`：`C1 22.292 tok/s`，`TTFT 3143.8 ms`
   - `ROCm 7 budget=0 probe`：`C1 22.102 tok/s`，`TTFT 332.4 ms`
 - `omnicoder-9b-q4_k_m.gguf`
   - 量化：`Q4_K_M`
+  - 使用上下文：`65536`
+  - 测试口径：formal 短 prompt 部署口径
+  - 输入规模：`prompt_tokens = 161`
   - `ROCm 6`：`C1 18.844 tok/s`，`TTFT 165.9 ms`
 - `squeez-2b.i1-Q4_K_M.gguf`
   - 近似文件大小：`1.27 GB`
+  - 使用上下文：`65536`
+  - 测试口径：本地吞吐探针
+  - 输入规模：`prompt_tokens ≈ 1497`
   - `ROCm 7`：`prompt 70.10 tok/s`，`decode 56.36 tok/s`
 
 ### Qwen 3
 
 - `MiniCPM-o-4_5-Q4_K_M.gguf`
   - 量化：`Q4_K_M`
+  - 使用上下文：`40960`
+  - 测试口径：formal 短 prompt 部署口径
+  - 输入规模：`prompt_tokens = 160`
   - `ROCm 6`：`C1 23.444 tok/s`，`TTFT 54.3 ms`
 
 ### PrismML Bonsai-8B
 
 - `Bonsai-8B.gguf`
   - 近似文件大小：`1.16 GB`
+  - 使用上下文：`16384`
+  - 测试口径：专用补丁版 `llama.cpp` 的最小请求 probe
+  - 输入规模：`prompt_tokens ≈ 26`
   - `ROCm 7` + 专用补丁版 `llama.cpp`：`prompt 108.40 tok/s`，`decode 65.99 tok/s`（最小请求）
 
 ## 模型问题解析

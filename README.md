@@ -162,10 +162,15 @@ After the firmware, kernel, and userspace path were stable, `llama.cpp` became t
 
 ## Validated Files by Base
 
+TTFT is only strictly comparable when prompt size and test mode are close. For that reason, the entries below include context, test mode, and the prompt scale used in the cited measurement. Unified formal short-prompt runs are the most directly comparable; minimal-request probes and ad-hoc throughput probes are better treated as engineering references than as strict apples-to-apples comparisons.
+
 ### Gemma 4
 
 - `gemma-4-E2B-it-Q4_K_M.gguf`
   - approx size: `3.11 GB`
+  - context used: `131072`
+  - test mode: formal short-prompt deployment harness
+  - prompt scale: `prompt_tokens = 63`
   - `ROCm 6`: `C1 42.317 tok/s`, `TTFT 281.5 ms`
   - `ROCm 7`: `C1 43.890 tok/s`, `TTFT 258.6 ms`
 
@@ -173,35 +178,56 @@ After the firmware, kernel, and userspace path were stable, `llama.cpp` became t
 
 - `gemma-3n-E4B-it-UD-Q4_K_XL.gguf`
   - approx size: `5.39 GB`
+  - context used: `16384`
+  - test mode: formal short-prompt deployment harness
+  - prompt scale: `prompt_tokens = 59`
   - `ROCm 6`: `C1 23.341 tok/s`, `TTFT 416.9 ms`
 - `gemma-3n-E4B-it-Q4_K_M.gguf`
   - approx size: `4.54 GB`
+  - context used: `32768`
+  - test mode: formal short-prompt deployment harness
+  - prompt scale: `prompt_tokens = 59`
   - `ROCm 6`: `C1 22.794 tok/s`, `TTFT 419.9 ms`
 
 ### Qwen3.5
 
 - `CoPaw-flash-9B-20260330-q4.gguf`
   - approx size: `5.63 GB`
+  - context used: `65536`
+  - test mode: formal short-prompt deployment harness
+  - prompt scale: `prompt_tokens = 161`
   - `ROCm 6`: `C1 20.048 tok/s`, `TTFT 162.1 ms`
   - `ROCm 7`: `C1 22.292 tok/s`, `TTFT 3143.8 ms`
   - `ROCm 7 budget=0 probe`: `C1 22.102 tok/s`, `TTFT 332.4 ms`
 - `omnicoder-9b-q4_k_m.gguf`
   - quant level: `Q4_K_M`
+  - context used: `65536`
+  - test mode: formal short-prompt deployment harness
+  - prompt scale: `prompt_tokens = 161`
   - `ROCm 6`: `C1 18.844 tok/s`, `TTFT 165.9 ms`
 - `squeez-2b.i1-Q4_K_M.gguf`
   - approx size: `1.27 GB`
+  - context used: `65536`
+  - test mode: local throughput probe
+  - prompt scale: `prompt_tokens ≈ 1497`
   - `ROCm 7`: `prompt 70.10 tok/s`, `decode 56.36 tok/s`
 
 ### Qwen 3
 
 - `MiniCPM-o-4_5-Q4_K_M.gguf`
   - quant level: `Q4_K_M`
+  - context used: `40960`
+  - test mode: formal short-prompt deployment harness
+  - prompt scale: `prompt_tokens = 160`
   - `ROCm 6`: `C1 23.444 tok/s`, `TTFT 54.3 ms`
 
 ### PrismML Bonsai-8B
 
 - `Bonsai-8B.gguf`
   - approx size: `1.16 GB`
+  - context used: `16384`
+  - test mode: minimal-request probe on patched `llama.cpp`
+  - prompt scale: `prompt_tokens ≈ 26`
   - `ROCm 7` + patched `llama.cpp`: `prompt 108.40 tok/s`, `decode 65.99 tok/s` on minimal request
 
 ## Model Behavior Analysis
