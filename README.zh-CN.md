@@ -34,6 +34,16 @@
 - 把这份仓库当作同架构家族的工程参考
 - 不要把它理解成对你那张卡的无条件保证
 
+## 在真实 W5500 硬件上已经测试过的底座
+
+| 官方底座 / 家族 | 已测试的 ROCm 通路 | 当前状态 | 简短结论 |
+|---|---|---|---|
+| Gemma 4 | ROCm 6 / ROCm 7 | stable | 当前最强、最干净的 W5500 主线基座 |
+| Gemma 3n | ROCm 6 | stable | 已验证，但综合明显落后于最强 Gemma 4 线 |
+| Qwen3.5 | ROCm 6 / ROCm 7 | stable with caveats | 多条线都能跑，但 ROCm 7 下某些 reasoning 线的可见 TTFT 要特别解释 |
+| Qwen 3 | ROCm 6 | stable | 已有可用文本子线样本，但不是当前最强部署位 |
+| PrismML Bonsai-8B | ROCm 7 + 专用补丁版 `llama.cpp` | special-case success | 特殊格式案例，依赖源码层 bring-up |
+
 ## 验证范围与风险说明
 
 这首先是一个**个人实验项目**，不是厂商认证，也不是官方支持声明。
@@ -160,40 +170,49 @@ rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012
 - 不是“系统认卡”
 - 而是“模型能不能真的启动、推理、回包、测出性能”
 
-## 在真实 W5500 硬件上已经验证成功的模型底座
-
-| 官方底座 / 家族 | 已验证的 ROCm 通路 | 代表性性能结果 | 当前状态 | 简短结论 |
-|---|---|---|---|---|
-| Gemma 4 | ROCm 6 / ROCm 7 | `ROCm6: C1 42.317, TTFT 281.5 ms`；`ROCm7: C1 43.890, TTFT 258.6 ms` | stable | 当前最强、最干净的 W5500 主线基座 |
-| Gemma 3n | ROCm 6 | `C1 22.794-23.341 tok/s`，`TTFT 416.9-419.9 ms` | stable | 能跑通，但综合不如最强 Gemma 4 线 |
-| Qwen3.5 | ROCm 6 / ROCm 7 | `ROCm6: C1 18.844-20.048, TTFT 162.1-165.9 ms`；`ROCm7 reasoning 样本: C1 22.292, TTFT 3143.8 ms`；`budget=0 probe: C1 22.102, TTFT 332.4 ms`；`squeez-2b: prompt 70.10, decode 56.36 tok/s` | stable with caveats | 这条线整体可用，但 ROCm 7 下需要特别关注可见 TTFT |
-| Qwen 3 | ROCm 6 | `C1 23.444 tok/s`，`TTFT 54.3 ms` | stable | 有可用文本子线样本，但不是当前最强部署位 |
-| PrismML Bonsai-8B | ROCm 7 + 专用补丁版 `llama.cpp` | `最小请求: prompt 108.40, decode 65.99 tok/s` | special-case success | 已跑通，但它属于特殊格式案例，不是通用主线 |
-
 ## 各基座下已验证的具体测试文件
 
 ### Gemma 4
 
 - `gemma-4-E2B-it-Q4_K_M.gguf`
+  - 近似文件大小：`3.11 GB`
+  - `ROCm 6`：`C1 42.317 tok/s`，`TTFT 281.5 ms`
+  - `ROCm 7`：`C1 43.890 tok/s`，`TTFT 258.6 ms`
 
 ### Gemma 3n
 
 - `gemma-3n-E4B-it-UD-Q4_K_XL.gguf`
+  - 近似文件大小：`5.39 GB`
+  - `ROCm 6`：`C1 23.341 tok/s`，`TTFT 416.9 ms`
 - `gemma-3n-E4B-it-Q4_K_M.gguf`
+  - 近似文件大小：`4.54 GB`
+  - `ROCm 6`：`C1 22.794 tok/s`，`TTFT 419.9 ms`
 
 ### Qwen3.5
 
 - `CoPaw-flash-9B-20260330-q4.gguf`
+  - 近似文件大小：`5.63 GB`
+  - `ROCm 6`：`C1 20.048 tok/s`，`TTFT 162.1 ms`
+  - `ROCm 7`：`C1 22.292 tok/s`，`TTFT 3143.8 ms`
+  - `ROCm 7 budget=0 probe`：`C1 22.102 tok/s`，`TTFT 332.4 ms`
 - `omnicoder-9b-q4_k_m.gguf`
+  - 量化：`Q4_K_M`
+  - `ROCm 6`：`C1 18.844 tok/s`，`TTFT 165.9 ms`
 - `squeez-2b.i1-Q4_K_M.gguf`
+  - 近似文件大小：`1.27 GB`
+  - `ROCm 7`：`prompt 70.10 tok/s`，`decode 56.36 tok/s`
 
 ### Qwen 3
 
 - `MiniCPM-o-4_5-Q4_K_M.gguf`
+  - 量化：`Q4_K_M`
+  - `ROCm 6`：`C1 23.444 tok/s`，`TTFT 54.3 ms`
 
 ### PrismML Bonsai-8B
 
 - `Bonsai-8B.gguf`
+  - 近似文件大小：`1.16 GB`
+  - `ROCm 7` + 专用补丁版 `llama.cpp`：`prompt 108.40 tok/s`，`decode 65.99 tok/s`（最小请求）
 
 ## 模型问题解析
 

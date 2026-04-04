@@ -31,6 +31,16 @@ The broader family scope is summarized here:
 
 If you are not on `Navi14 / gfx1012`, treat this repository as an architectural reference rather than a guarantee.
 
+## Bases Already Tested On Real W5500 Hardware
+
+| Official base / family | ROCm lane(s) tested | Current status | Brief note |
+|---|---|---|---|
+| Gemma 4 | ROCm 6 / ROCm 7 | stable | strongest clean mainline result so far |
+| Gemma 3n | ROCm 6 | stable | validated, but clearly behind the best Gemma 4 lane |
+| Qwen3.5 | ROCm 6 / ROCm 7 | stable with caveats | multiple lines run, but visible-TTFT must be interpreted carefully on ROCm 7 |
+| Qwen 3 | ROCm 6 | stable | text-only sample validated, but not the strongest deployment choice |
+| PrismML Bonsai-8B | ROCm 7 + patched `llama.cpp` | special-case success | unusual format; required dedicated source-level bring-up |
+
 ## Validation Scope and Risk Statement
 
 This is a personal field project, not a vendor support statement.
@@ -150,40 +160,49 @@ This was solved by overlaying `gfx1012` `rocBLAS/Tensile` assets from the workin
 
 After the firmware, kernel, and userspace path were stable, `llama.cpp` became the practical validation target. Both ROCm 6 and ROCm 7 were used to verify whether `W5500` could serve real models rather than simply enumerate in system tooling.
 
-## Verified Base Families on Real W5500 Hardware
-
-| Official base / family | ROCm lane(s) validated | Representative measured result | Current status | Short conclusion |
-|---|---|---|---|---|
-| Gemma 4 | ROCm 6 / ROCm 7 | `ROCm6: C1 42.317, TTFT 281.5 ms` ; `ROCm7: C1 43.890, TTFT 258.6 ms` | stable | strongest clean W5500 baseline so far |
-| Gemma 3n | ROCm 6 | `C1 22.794-23.341 tok/s`, `TTFT 416.9-419.9 ms` | stable | works cleanly, but weaker than the best Gemma 4 path |
-| Qwen3.5 | ROCm 6 / ROCm 7 | `ROCm6: C1 18.844-20.048, TTFT 162.1-165.9 ms` ; `ROCm7 reasoning sample: C1 22.292, TTFT 3143.8 ms` ; `budget=0 probe: C1 22.102, TTFT 332.4 ms` ; `squeez-2b: prompt 70.10, decode 56.36 tok/s` | stable with caveats | broad family runs, but ROCm 7 visible-TTFT behavior must be interpreted carefully |
-| Qwen 3 | ROCm 6 | `C1 23.444 tok/s`, `TTFT 54.3 ms` | stable | low-TTFT text-only sample exists, but it is not the strongest deployment line |
-| PrismML Bonsai-8B | ROCm 7 + patched `llama.cpp` | `minimal request: prompt 108.40, decode 65.99 tok/s` | special-case success | validated only after dedicated source-level bring-up |
-
 ## Validated Files by Base
 
 ### Gemma 4
 
 - `gemma-4-E2B-it-Q4_K_M.gguf`
+  - approx size: `3.11 GB`
+  - `ROCm 6`: `C1 42.317 tok/s`, `TTFT 281.5 ms`
+  - `ROCm 7`: `C1 43.890 tok/s`, `TTFT 258.6 ms`
 
 ### Gemma 3n
 
 - `gemma-3n-E4B-it-UD-Q4_K_XL.gguf`
+  - approx size: `5.39 GB`
+  - `ROCm 6`: `C1 23.341 tok/s`, `TTFT 416.9 ms`
 - `gemma-3n-E4B-it-Q4_K_M.gguf`
+  - approx size: `4.54 GB`
+  - `ROCm 6`: `C1 22.794 tok/s`, `TTFT 419.9 ms`
 
 ### Qwen3.5
 
 - `CoPaw-flash-9B-20260330-q4.gguf`
+  - approx size: `5.63 GB`
+  - `ROCm 6`: `C1 20.048 tok/s`, `TTFT 162.1 ms`
+  - `ROCm 7`: `C1 22.292 tok/s`, `TTFT 3143.8 ms`
+  - `ROCm 7 budget=0 probe`: `C1 22.102 tok/s`, `TTFT 332.4 ms`
 - `omnicoder-9b-q4_k_m.gguf`
+  - quant level: `Q4_K_M`
+  - `ROCm 6`: `C1 18.844 tok/s`, `TTFT 165.9 ms`
 - `squeez-2b.i1-Q4_K_M.gguf`
+  - approx size: `1.27 GB`
+  - `ROCm 7`: `prompt 70.10 tok/s`, `decode 56.36 tok/s`
 
 ### Qwen 3
 
 - `MiniCPM-o-4_5-Q4_K_M.gguf`
+  - quant level: `Q4_K_M`
+  - `ROCm 6`: `C1 23.444 tok/s`, `TTFT 54.3 ms`
 
 ### PrismML Bonsai-8B
 
 - `Bonsai-8B.gguf`
+  - approx size: `1.16 GB`
+  - `ROCm 7` + patched `llama.cpp`: `prompt 108.40 tok/s`, `decode 65.99 tok/s` on minimal request
 
 ## Model Behavior Analysis
 
