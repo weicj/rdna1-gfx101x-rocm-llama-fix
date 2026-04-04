@@ -65,7 +65,6 @@
 - Tool 布局说明：[tools/README.md](./tools/README.md)
 - 固件资源目录：[`tools/assets/firmware/navi14`](./tools/assets/firmware/navi14)
 - 中文 bootstrap 说明：[docs/BOOTSTRAP.zh-CN.md](./docs/BOOTSTRAP.zh-CN.md)
-- English bootstrap guide: [docs/BOOTSTRAP.en.md](./docs/BOOTSTRAP.en.md)
 
 这套工具不是那种危险的“盲目一键成功”按钮，而是一个可审计、分阶段的入口：
 

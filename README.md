@@ -62,7 +62,6 @@ It now includes a staged local bootstrap toolkit that standardizes the highest-r
 - Tool layout notes: [tools/README.md](./tools/README.md)
 - Bundled firmware assets: [`tools/assets/firmware/navi14`](./tools/assets/firmware/navi14)
 - English bootstrap guide: [docs/BOOTSTRAP.en.md](./docs/BOOTSTRAP.en.md)
-- Chinese bootstrap guide: [docs/BOOTSTRAP.zh-CN.md](./docs/BOOTSTRAP.zh-CN.md)
 
 This tooling is intentionally not a reckless “one-click miracle”.
 
