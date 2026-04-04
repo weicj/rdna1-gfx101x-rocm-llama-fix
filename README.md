@@ -152,13 +152,13 @@ After the firmware, kernel, and userspace path were stable, `llama.cpp` became t
 
 ## Verified Base Families on Real W5500 Hardware
 
-| Official base / family | ROCm lane(s) validated | Current status | Short conclusion |
-|---|---|---|---|
-| Gemma 4 | ROCm 6 / ROCm 7 | stable | strongest clean W5500 baseline so far |
-| Gemma 3n | ROCm 6 | stable | works cleanly, but weaker than the best Gemma 4 path |
-| Qwen3.5 | ROCm 6 / ROCm 7 | stable with caveats | broad family runs, but ROCm 7 visible-TTFT behavior must be interpreted carefully |
-| Qwen 3 | ROCm 6 | stable | low-TTFT text-only sample exists, but it is not the strongest deployment line |
-| PrismML Bonsai-8B | ROCm 7 + patched `llama.cpp` | special-case success | validated only after dedicated source-level bring-up |
+| Official base / family | ROCm lane(s) validated | Representative measured result | Current status | Short conclusion |
+|---|---|---|---|---|
+| Gemma 4 | ROCm 6 / ROCm 7 | `ROCm6: C1 42.317, TTFT 281.5 ms` ; `ROCm7: C1 43.890, TTFT 258.6 ms` | stable | strongest clean W5500 baseline so far |
+| Gemma 3n | ROCm 6 | `C1 22.794-23.341 tok/s`, `TTFT 416.9-419.9 ms` | stable | works cleanly, but weaker than the best Gemma 4 path |
+| Qwen3.5 | ROCm 6 / ROCm 7 | `ROCm6: C1 18.844-20.048, TTFT 162.1-165.9 ms` ; `ROCm7 reasoning sample: C1 22.292, TTFT 3143.8 ms` ; `budget=0 probe: C1 22.102, TTFT 332.4 ms` ; `squeez-2b: prompt 70.10, decode 56.36 tok/s` | stable with caveats | broad family runs, but ROCm 7 visible-TTFT behavior must be interpreted carefully |
+| Qwen 3 | ROCm 6 | `C1 23.444 tok/s`, `TTFT 54.3 ms` | stable | low-TTFT text-only sample exists, but it is not the strongest deployment line |
+| PrismML Bonsai-8B | ROCm 7 + patched `llama.cpp` | `minimal request: prompt 108.40, decode 65.99 tok/s` | special-case success | validated only after dedicated source-level bring-up |
 
 ## Validated Files by Base
 

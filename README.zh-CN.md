@@ -162,13 +162,13 @@ rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012
 
 ## 在真实 W5500 硬件上已经验证成功的模型底座
 
-| 官方底座 / 家族 | 已验证的 ROCm 通路 | 当前状态 | 简短结论 |
-|---|---|---|---|
-| Gemma 4 | ROCm 6 / ROCm 7 | stable | 当前最强、最干净的 W5500 主线基座 |
-| Gemma 3n | ROCm 6 | stable | 能跑通，但综合不如最强 Gemma 4 线 |
-| Qwen3.5 | ROCm 6 / ROCm 7 | stable with caveats | 这条线整体可用，但 ROCm 7 下需要特别关注可见 TTFT |
-| Qwen 3 | ROCm 6 | stable | 有可用文本子线样本，但不是当前最强部署位 |
-| PrismML Bonsai-8B | ROCm 7 + 专用补丁版 `llama.cpp` | special-case success | 已跑通，但它属于特殊格式案例，不是通用主线 |
+| 官方底座 / 家族 | 已验证的 ROCm 通路 | 代表性性能结果 | 当前状态 | 简短结论 |
+|---|---|---|---|---|
+| Gemma 4 | ROCm 6 / ROCm 7 | `ROCm6: C1 42.317, TTFT 281.5 ms`；`ROCm7: C1 43.890, TTFT 258.6 ms` | stable | 当前最强、最干净的 W5500 主线基座 |
+| Gemma 3n | ROCm 6 | `C1 22.794-23.341 tok/s`，`TTFT 416.9-419.9 ms` | stable | 能跑通，但综合不如最强 Gemma 4 线 |
+| Qwen3.5 | ROCm 6 / ROCm 7 | `ROCm6: C1 18.844-20.048, TTFT 162.1-165.9 ms`；`ROCm7 reasoning 样本: C1 22.292, TTFT 3143.8 ms`；`budget=0 probe: C1 22.102, TTFT 332.4 ms`；`squeez-2b: prompt 70.10, decode 56.36 tok/s` | stable with caveats | 这条线整体可用，但 ROCm 7 下需要特别关注可见 TTFT |
+| Qwen 3 | ROCm 6 | `C1 23.444 tok/s`，`TTFT 54.3 ms` | stable | 有可用文本子线样本，但不是当前最强部署位 |
+| PrismML Bonsai-8B | ROCm 7 + 专用补丁版 `llama.cpp` | `最小请求: prompt 108.40, decode 65.99 tok/s` | special-case success | 已跑通，但它属于特殊格式案例，不是通用主线 |
 
 ## 各基座下已验证的具体测试文件
 
