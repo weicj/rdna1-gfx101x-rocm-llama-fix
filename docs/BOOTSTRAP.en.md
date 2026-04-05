@@ -1,14 +1,20 @@
-# W5500 ROCm Bootstrap Command Guide
+# RDNA1 ROCm Bootstrap Command Guide
 
-This repository now includes a single entrypoint helper script:
+This repository now includes a generic entrypoint helper script:
+
+- [tools/rdna1-rocm-bootstrap.sh](../tools/rdna1-rocm-bootstrap.sh)
+
+For the exact `W5500 / Navi14 / gfx1012` lane, a compatibility wrapper is also kept:
 
 - [tools/w5500-rocm-bootstrap.sh](../tools/w5500-rocm-bootstrap.sh)
 
-The repository also bundles the `Navi14` firmware overlay files used by the documented bring-up path:
+The repository also bundles firmware overlay files for the main `RDNA1` ASIC groups covered by this project:
 
+- [tools/assets/firmware/navi10](../tools/assets/firmware/navi10)
+- [tools/assets/firmware/navi12](../tools/assets/firmware/navi12)
 - [tools/assets/firmware/navi14](../tools/assets/firmware/navi14)
 
-Its purpose is not to pretend that W5500 ROCm bring-up can be solved by a blind magic button.
+Its purpose is not to pretend that RDNA1 ROCm bring-up can be solved by a blind magic button.
 
 Its purpose is to standardize the parts that really can be automated.
 
@@ -33,7 +39,7 @@ So the more professional approach is:
 Collect current host state:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh doctor
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 doctor
 ```
 
 This checks:
@@ -48,7 +54,7 @@ This checks:
 You can also specify the PCI BDF explicitly:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh doctor --pci-bdf 0000:05:00.0
+./tools/rdna1-rocm-bootstrap.sh --asic navi10 doctor --pci-bdf 0000:05:00.0
 ```
 
 ### 2. `backup-firmware`
@@ -56,37 +62,39 @@ You can also specify the PCI BDF explicitly:
 Back up the current `Navi14` firmware blobs:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh backup-firmware
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 backup-firmware
 ```
 
 Or choose the output directory explicitly:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh backup-firmware --out /path/to/backup
+./tools/rdna1-rocm-bootstrap.sh --asic navi10 backup-firmware --out /path/to/backup
 ```
 
 ### 3. `install-firmware-overlay`
 
-Install newer `navi14_*.bin` overlays into `/lib/firmware/amdgpu/` and rebuild `initramfs`:
+Install newer ASIC-specific overlays into `/lib/firmware/amdgpu/` and rebuild `initramfs`:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 install-firmware-overlay
 ```
 
-By default, this uses the bundled repository firmware in:
+By default, this uses the bundled repository firmware for the selected ASIC in:
 
+- `tools/assets/firmware/navi10/`
+- `tools/assets/firmware/navi12/`
 - `tools/assets/firmware/navi14/`
 
 If you want to use a different directory explicitly:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay --from /path/to/new-firmware-dir
+./tools/rdna1-rocm-bootstrap.sh --asic navi12 install-firmware-overlay --from /path/to/new-firmware-dir
 ```
 
 Target a specific kernel:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay \
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 install-firmware-overlay \
   --from /path/to/new-firmware-dir \
   --kernel 6.8.0-107-generic
 ```
@@ -94,17 +102,17 @@ Target a specific kernel:
 Dry-run only:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay \
+./tools/rdna1-rocm-bootstrap.sh --asic navi10 install-firmware-overlay \
   --from /path/to/new-firmware-dir \
   --dry-run
 ```
 
-### 4. `link-rocm7-gfx1012`
+### 4. `link-rocm7-arch`
 
-Overlay `gfx1012` `rocBLAS/Tensile` assets from the working ROCm 6 tree into a ROCm 7 userland prefix:
+Overlay target-architecture `rocBLAS/Tensile` assets from the working ROCm 6 tree into a ROCm 7 userland prefix:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh link-rocm7-gfx1012 \
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1012 link-rocm7-arch \
   --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
   --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
 ```
@@ -112,7 +120,7 @@ Overlay `gfx1012` `rocBLAS/Tensile` assets from the working ROCm 6 tree into a R
 Dry-run version:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh link-rocm7-gfx1012 \
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1010 link-rocm7-arch \
   --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
   --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library \
   --dry-run
@@ -120,18 +128,26 @@ Dry-run version:
 
 ### 5. `print-build-rocm6`
 
-Print the validated `ROCm 6 + gfx1012` `llama.cpp` build command:
+Print the validated `ROCm 6 + gfx101x` `llama.cpp` build command:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh print-build-rocm6
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1012 print-build-rocm6
 ```
 
 ### 6. `print-build-rocm7`
 
-Print the validated `ROCm 7 + gfx1012` `llama.cpp` build command:
+Print the validated `ROCm 7 + gfx101x` `llama.cpp` build command:
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh print-build-rocm7
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1010 print-build-rocm7
+```
+
+Compatibility alias for the exact W5500 lane:
+
+```bash
+./tools/w5500-rocm-bootstrap.sh link-rocm7-gfx1012 \
+  --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
+  --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
 ```
 
 ## Recommended Order
@@ -140,7 +156,7 @@ Print the validated `ROCm 7 + gfx1012` `llama.cpp` build command:
 2. `backup-firmware`
 3. `install-firmware-overlay`
 4. reboot and run `doctor` again
-5. `link-rocm7-gfx1012`
+5. `link-rocm7-arch`
 6. `print-build-rocm6` / `print-build-rocm7`
 
 ## What this script actually solves

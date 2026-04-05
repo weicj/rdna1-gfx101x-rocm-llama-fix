@@ -1,11 +1,17 @@
-# W5500 ROCm Bootstrap 命令说明
+# RDNA1 ROCm Bootstrap 命令说明
 
-这个仓库现在提供了一个统一入口脚本：
+这个仓库现在提供了一个通用入口脚本：
+
+- [tools/rdna1-rocm-bootstrap.sh](../tools/rdna1-rocm-bootstrap.sh)
+
+同时也保留了对 `W5500 / Navi14 / gfx1012` 这条精确路线的兼容包装：
 
 - [tools/w5500-rocm-bootstrap.sh](../tools/w5500-rocm-bootstrap.sh)
 
-并且已经把 `Navi14` 相关固件覆盖层一起打包进仓库：
+并且已经把 `RDNA1` 相关的固件覆盖层一起打包进仓库：
 
+- [tools/assets/firmware/navi10](../tools/assets/firmware/navi10)
+- [tools/assets/firmware/navi12](../tools/assets/firmware/navi12)
 - [tools/assets/firmware/navi14](../tools/assets/firmware/navi14)
 
 它的目标不是提供一个不透明的“魔法一键成功”按钮，而是把真正能自动化的步骤标准化下来。
@@ -30,7 +36,7 @@
 用于采集当前机器的关键状态：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh doctor
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 doctor
 ```
 
 它会检查：
@@ -45,7 +51,7 @@
 也可以指定你的卡的 BDF：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh doctor --pci-bdf 0000:05:00.0
+./tools/rdna1-rocm-bootstrap.sh --asic navi10 doctor --pci-bdf 0000:05:00.0
 ```
 
 ### 2. `backup-firmware`
@@ -53,37 +59,39 @@
 备份当前 `Navi14` 固件：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh backup-firmware
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 backup-firmware
 ```
 
 也可以指定备份目录：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh backup-firmware --out /path/to/backup
+./tools/rdna1-rocm-bootstrap.sh --asic navi10 backup-firmware --out /path/to/backup
 ```
 
 ### 3. `install-firmware-overlay`
 
-把新版 `navi14_*.bin` 覆盖到 `/lib/firmware/amdgpu/`，并重建 `initramfs`。
+把目标 ASIC 的新版固件覆盖到 `/lib/firmware/amdgpu/`，并重建 `initramfs`。
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 install-firmware-overlay
 ```
 
-默认情况下，它会直接使用仓库自带的：
+默认情况下，它会直接使用仓库内置的目标 ASIC 固件目录：
 
+- `tools/assets/firmware/navi10/`
+- `tools/assets/firmware/navi12/`
 - `tools/assets/firmware/navi14/`
 
 如果你要换成自己准备的固件目录，再显式指定：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay --from /path/to/new-firmware-dir
+./tools/rdna1-rocm-bootstrap.sh --asic navi12 install-firmware-overlay --from /path/to/new-firmware-dir
 ```
 
 指定目标内核：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay \
+./tools/rdna1-rocm-bootstrap.sh --asic navi14 install-firmware-overlay \
   --from /path/to/new-firmware-dir \
   --kernel 6.8.0-107-generic
 ```
@@ -91,17 +99,17 @@
 先只演练不真正写入：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh install-firmware-overlay \
+./tools/rdna1-rocm-bootstrap.sh --asic navi10 install-firmware-overlay \
   --from /path/to/new-firmware-dir \
   --dry-run
 ```
 
-### 4. `link-rocm7-gfx1012`
+### 4. `link-rocm7-arch`
 
-给 `ROCm 7` 用户态补 `gfx1012` 的 `rocBLAS/Tensile` 文件：
+给 `ROCm 7` 用户态补目标 `gfx101x` 架构的 `rocBLAS/Tensile` 文件：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh link-rocm7-gfx1012 \
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1012 link-rocm7-arch \
   --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
   --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
 ```
@@ -109,7 +117,7 @@
 也支持先 dry-run：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh link-rocm7-gfx1012 \
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1010 link-rocm7-arch \
   --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
   --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library \
   --dry-run
@@ -117,18 +125,26 @@
 
 ### 5. `print-build-rocm6`
 
-打印这份项目里已经验证过的 `ROCm 6 + gfx1012` 构建命令：
+打印这份项目里已经验证过的 `ROCm 6 + gfx101x` 构建命令：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh print-build-rocm6
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1012 print-build-rocm6
 ```
 
 ### 6. `print-build-rocm7`
 
-打印这份项目里已经验证过的 `ROCm 7 + gfx1012` 构建命令：
+打印这份项目里已经验证过的 `ROCm 7 + gfx101x` 构建命令：
 
 ```bash
-./tools/w5500-rocm-bootstrap.sh print-build-rocm7
+./tools/rdna1-rocm-bootstrap.sh --arch gfx1010 print-build-rocm7
+```
+
+对 `W5500 / gfx1012` 精确路线，也仍保留兼容别名：
+
+```bash
+./tools/w5500-rocm-bootstrap.sh link-rocm7-gfx1012 \
+  --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
+  --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
 ```
 
 ## 适合的使用顺序
@@ -139,7 +155,7 @@
 2. `backup-firmware`
 3. `install-firmware-overlay`
 4. 重启并重新 `doctor`
-5. `link-rocm7-gfx1012`
+5. `link-rocm7-arch`
 6. `print-build-rocm6` / `print-build-rocm7`
 
 ## 这套脚本解决的是什么

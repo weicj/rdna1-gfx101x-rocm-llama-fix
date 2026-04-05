@@ -71,9 +71,13 @@
 
 它内置了一套可在 Linux 本地执行的 staged bootstrap 工具，用来把最关键、最容易出错的步骤标准化下来：
 
-- Bootstrap 脚本：[`tools/w5500-rocm-bootstrap.sh`](./tools/w5500-rocm-bootstrap.sh)
+- 通用 bootstrap 脚本：[`tools/rdna1-rocm-bootstrap.sh`](./tools/rdna1-rocm-bootstrap.sh)
+- W5500 兼容包装层：[`tools/w5500-rocm-bootstrap.sh`](./tools/w5500-rocm-bootstrap.sh)
 - Tool 布局说明：[tools/README.md](./tools/README.md)
-- 固件资源目录：[`tools/assets/firmware/navi14`](./tools/assets/firmware/navi14)
+- 固件资源目录：
+  - [`tools/assets/firmware/navi10`](./tools/assets/firmware/navi10)
+  - [`tools/assets/firmware/navi12`](./tools/assets/firmware/navi12)
+  - [`tools/assets/firmware/navi14`](./tools/assets/firmware/navi14)
 - 中文 bootstrap 说明：[docs/BOOTSTRAP.zh-CN.md](./docs/BOOTSTRAP.zh-CN.md)
 
 这套工具不是那种危险的“盲目一键成功”按钮，而是一个可审计、分阶段的入口：
@@ -81,7 +85,7 @@
 - `doctor`
 - `backup-firmware`
 - `install-firmware-overlay`
-- `link-rocm7-gfx1012`
+- `link-rocm7-arch`
 - `print-build-rocm6`
 - `print-build-rocm7`
 

@@ -1,4 +1,4 @@
-# Agent Runbook：让 W5500 在 ROCm 6 与 ROCm 7 上跑现代大模型的步骤
+# Agent Runbook：让 RDNA1 / Navi14 / gfx101x 在 ROCm 6 与 ROCm 7 上跑现代大模型的步骤
 
 这份 runbook 不是叙述文，而是给 agent / 运维工程师 / 自动化助手执行的程序化步骤。
 
@@ -6,15 +6,12 @@
 
 ## 目标
 
-把 `AMD Radeon Pro W5500 (Navi14 / gfx1012)` 带进可用的 `ROCm` 现代大模型推理通路，并明确区分：
-
-- `ROCm 6` 的稳定路径
-- `ROCm 7` 的增强路径
+把一张 `RDNA1 / Navi14 / gfx101x` 显卡带进可用的 `ROCm` 现代大模型推理通路，并明确区分 `ROCm 6` 的稳定路径与 `ROCm 7` 的增强路径。本项目最强的真实验证主样本仍然是 `Radeon Pro W5500 / gfx1012`。
 
 ## 适用前提
 
 - 主机平台可能较老，例如 `X58 / Intel 5520/5500`
-- 显卡是 `W5500`，PCI ID 为 `1002:7341`
+- 显卡是目标 `RDNA1 / Navi10 / Navi12 / Navi14 / gfx101x` 卡
 - 有 `sudo`
 - 可以接受重启
 - 目标工作负载是 `llama.cpp` 推理，而不是先做通用 HIP 开发
@@ -179,23 +176,23 @@ curl -fsS http://127.0.0.1:8101/v1/chat/completions \
 
 ## 第五阶段：谨慎把 ROCm 7 补上
 
-### 第 10 步：不要假设 ROCm 7 对 `gfx1012` 开箱即用
+### 第 10 步：不要假设 ROCm 7 对 `gfx101x` 开箱即用
 
-这台机器上，`ROCm 7.2.1` 第一枪的直接失败是：
+这台真实验证主机上，`ROCm 7.2.1` 第一枪的直接失败是：
 
 - `rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012`
 
 翻译成人话就是：
 
 - ROCm 7 用户态装上了
-- 但它给 `gfx1012` 准备的 `rocBLAS/Tensile` 资产不完整
+- 但它给目标 `gfx101x` 准备的 `rocBLAS/Tensile` 资产不完整
 
 ### 第 11 步：给 ROCm 7 做一个可写 overlay / linkroot
 
 推荐做法：
 
 - 准备一个可写的 ROCm 7 前缀
-- 把 ROCm 6 中与 `gfx1012` 相关的 `rocBLAS/Tensile` 文件软链进去
+- 把 ROCm 6 中与目标 `gfx101x` 对应的 `rocBLAS/Tensile` 文件软链进去
 
 参考命令模式：
 
@@ -214,11 +211,9 @@ find "$ROCM6" -maxdepth 1 -type f \
 
 实机里，这一步一共新增了 `56` 个软链。
 
-### 第 12 步：编出专用 `gfx1012` 的 ROCm 7 二进制
+### 第 12 步：编出专用 `gfx101x` 的 ROCm 7 二进制
 
-这份项目的 `ROCm 7` 说明应当只围绕 `W5500 / gfx1012` 本身展开，不把其它显卡路线混进主流程。
-
-推荐的 `gfx1012` 专用 cache 参数与 `ROCm 6` 逻辑一致，只是换成 `ROCm 7` 用户态：
+推荐的 `gfx1012` 专用 cache 参数与 `ROCm 6` 逻辑一致，只是换成 `ROCm 7` 用户态；如果你是其它 `gfx101x` 变体，就把架构替换成你的目标值。
 
 - `GGML_HIP=ON`
 - `CMAKE_BUILD_TYPE=Release`

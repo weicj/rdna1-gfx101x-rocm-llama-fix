@@ -1,15 +1,15 @@
-# Agent Runbook: Making W5500 Run Modern LLMs on ROCm 6 and ROCm 7
+# Agent Runbook: Making RDNA1 / Navi14 / gfx101x GPUs Run Modern LLMs on ROCm 6 and ROCm 7
 
 This runbook is intentionally procedural. It is written for an autonomous agent, a deployment assistant, or an operations engineer who needs an execution order instead of a narrative explanation.
 
 ## Goal
 
-Bring `AMD Radeon Pro W5500 (Navi14 / gfx1012)` into a usable `ROCm` inference lane for modern LLM inference, validate it with `llama.cpp`, and clearly separate the `ROCm 6` path from the `ROCm 7` path.
+Bring an `RDNA1 / Navi14 / gfx101x` GPU into a usable `ROCm` inference lane for modern LLM inference, validate it with `llama.cpp`, and clearly separate the `ROCm 6` path from the `ROCm 7` path. The strongest real-world validation in this project still comes from `Radeon Pro W5500 / gfx1012`.
 
 ## Scope Assumptions
 
-- Host class: older `Intel 5520/5500/X58`-style machine or another machine where `gfx1012` is not turnkey
-- GPU: `W5500`, PCI ID `1002:7341`
+- Host class: older `Intel 5520/5500/X58`-style machine or another machine where `RDNA1 / gfx101x` is not turnkey
+- GPU: target `RDNA1 / Navi10 / Navi12 / Navi14 / gfx101x` card
 - You have `sudo`
 - You are willing to reboot
 - Your target workload is `llama.cpp`, not generic HIP development first
@@ -168,23 +168,23 @@ If this lane is stable, treat it as your baseline.
 
 ## Phase 5: Upgrade To ROCm 7 Carefully
 
-### Step 10. Do not assume ROCm 7 is drop-in for `gfx1012`
+### Step 10. Do not assume ROCm 7 is drop-in for `gfx101x`
 
-The first practical `ROCm 7.2.1` failure on `W5500` was:
+The first practical `ROCm 7.2.1` failure on the real validation host was:
 
 - `rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012`
 
 Interpretation:
 
 - ROCm 7 userland existed
-- `gfx1012` support was still incomplete in the installed `rocBLAS/Tensile` payload
+- the target `gfx101x` support was still incomplete in the installed `rocBLAS/Tensile` payload
 
 ### Step 11. Create a ROCm 7 linkroot / overlay
 
 Field-tested idea:
 
 - keep a writable ROCm 7 userland prefix
-- graft `gfx1012`-related `rocBLAS/Tensile` assets from the working ROCm 6 install
+- graft architecture-matching `gfx101x` `rocBLAS/Tensile` assets from the working ROCm 6 install
 
 Representative command pattern:
 
@@ -203,11 +203,9 @@ find "$ROCM6" -maxdepth 1 -type f \
 
 In the field run, `56` new symlinks were added.
 
-### Step 12. Build a dedicated ROCm 7 binary for `gfx1012`
+### Step 12. Build a dedicated ROCm 7 binary for your target `gfx101x` ASIC
 
-For this repository, keep the ROCm 7 instructions focused on `W5500 / gfx1012` only.
-
-Field-tested cache values for the dedicated `gfx1012` lane should mirror the ROCm 6 logic, but use the ROCm 7 userland/toolchain:
+Field-tested cache values for the dedicated `gfx1012` lane should mirror the ROCm 6 logic, but use the ROCm 7 userland/toolchain. For other `gfx101x` variants, keep the same structure and swap the target arch accordingly.
 
 - `GGML_HIP=ON`
 - `CMAKE_BUILD_TYPE=Release`

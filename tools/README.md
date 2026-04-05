@@ -4,10 +4,16 @@ This directory is meant to be usable on a local Linux machine without requiring 
 
 ## Structure
 
+- `rdna1-rocm-bootstrap.sh`
+  - generic staged helper entrypoint for `RDNA1 / Navi10 / Navi12 / Navi14 / gfx101x`
 - `w5500-rocm-bootstrap.sh`
-  - staged helper entrypoint
+  - compatibility wrapper for the exact `W5500 / Navi14 / gfx1012` lane
+- `assets/firmware/navi10/`
+  - bundled `navi10_*.bin` firmware overlay files
+- `assets/firmware/navi12/`
+  - bundled `navi12_*.bin` firmware overlay files
 - `assets/firmware/navi14/`
-  - bundled `navi14_*.bin` firmware overlay files used by the firmware-install step
+  - bundled `navi14_*.bin` firmware overlay files
 
 ## Design Intent
 

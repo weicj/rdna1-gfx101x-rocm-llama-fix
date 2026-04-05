@@ -68,9 +68,13 @@ This project is no longer just a stack of notes.
 
 It now includes a staged local bootstrap toolkit that standardizes the highest-risk parts of the bring-up flow:
 
-- Bootstrap script: [`tools/w5500-rocm-bootstrap.sh`](./tools/w5500-rocm-bootstrap.sh)
+- Generic bootstrap script: [`tools/rdna1-rocm-bootstrap.sh`](./tools/rdna1-rocm-bootstrap.sh)
+- W5500 compatibility wrapper: [`tools/w5500-rocm-bootstrap.sh`](./tools/w5500-rocm-bootstrap.sh)
 - Tool layout notes: [tools/README.md](./tools/README.md)
-- Bundled firmware assets: [`tools/assets/firmware/navi14`](./tools/assets/firmware/navi14)
+- Bundled firmware assets:
+  - [`tools/assets/firmware/navi10`](./tools/assets/firmware/navi10)
+  - [`tools/assets/firmware/navi12`](./tools/assets/firmware/navi12)
+  - [`tools/assets/firmware/navi14`](./tools/assets/firmware/navi14)
 - English bootstrap guide: [docs/BOOTSTRAP.en.md](./docs/BOOTSTRAP.en.md)
 
 This tooling is intentionally not a reckless “one-click miracle”.
@@ -80,7 +84,7 @@ It is a staged, auditable interface with commands such as:
 - `doctor`
 - `backup-firmware`
 - `install-firmware-overlay`
-- `link-rocm7-gfx1012`
+- `link-rocm7-arch`
 - `print-build-rocm6`
 - `print-build-rocm7`
 
