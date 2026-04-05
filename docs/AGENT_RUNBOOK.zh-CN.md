@@ -21,15 +21,15 @@
 ### 第 1 步：记录 PCIe 拓扑与显卡状态
 
 ```bash
-lspci -nn | rg '7341|VGA|Display|Audio'
+lspci -nn | rg 'VGA|Display|Audio'
 lspci -tv
-sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|7341|atomics|navi14' -i
+sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
 ```
 
 ### 第 2 步：记录当前实际加载的 amdgpu 微码版本
 
 ```bash
-sudo cat /sys/kernel/debug/dri/0000:05:00.0/amdgpu_firmware_info
+sudo cat /sys/kernel/debug/dri/<PCI_BDF>/amdgpu_firmware_info
 ```
 
 最关键的是看：
@@ -45,19 +45,19 @@ sudo cat /sys/kernel/debug/dri/0000:05:00.0/amdgpu_firmware_info
 
 如果你也看到这类错误，继续做固件阶段。
 
-## 第二阶段：把 Navi14 的有效 MEC 版本抬上去
+## 第二阶段：把目标 Navi1x ASIC 的有效 MEC 版本抬上去
 
-### 第 3 步：备份现有 `Navi14` 固件
+### 第 3 步：备份现有目标 ASIC 固件
 
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
-sudo mkdir -p /home/max/firmware-backups/navi14-$TS
-sudo cp -a /lib/firmware/amdgpu/navi14_* /home/max/firmware-backups/navi14-$TS/ 2>/dev/null || true
+sudo mkdir -p /home/max/firmware-backups/<asic>-$TS
+sudo cp -a /lib/firmware/amdgpu/<asic>_* /home/max/firmware-backups/<asic>-$TS/ 2>/dev/null || true
 ```
 
-### 第 4 步：安装新版上游 `linux-firmware` 的 `navi14_*.bin` 覆盖层
+### 第 4 步：安装目标 ASIC 的新版上游 `linux-firmware` 覆盖层
 
-使用较新的上游 `linux-firmware` 中的 `navi14_*.bin`，覆盖到：
+使用较新的上游 `linux-firmware` 中与你目标 ASIC 对应的固件（`navi10` / `navi12` / `navi14`），覆盖到：
 
 ```text
 /lib/firmware/amdgpu/
@@ -90,16 +90,16 @@ sudo update-initramfs -u -k "$(uname -r)"
 
 ```bash
 uname -r
-sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|7341|atomics|navi14' -i
-rocminfo | rg 'gfx1012|W5500|Agent'
+sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
+rocminfo | rg 'gfx1010|gfx1011|gfx1012|Agent'
 ```
 
 成功判据：
 
 - 出现 `kfd ... added device 1002:7341`
-- `rocminfo` 里能看到 `gfx1012`
-- `MEC` 不再是 `123`
-- 成功实测里，`MEC` 被抬到了 `156`
+- `rocminfo` 里能看到目标 `gfx101x`
+- `MEC` 不再是被拒绝的旧值
+- 在最强验证样本 `navi14` 上，这个值被抬到了 `156`
 
 ## 第四阶段：先把 ROCm 6 跑稳
 

@@ -19,15 +19,15 @@ Bring an `RDNA1 / Navi14 / gfx101x` GPU into a usable `ROCm` inference lane for 
 ### Step 1. Record PCIe topology and GPU state
 
 ```bash
-lspci -nn | rg '7341|VGA|Display|Audio'
+lspci -nn | rg 'VGA|Display|Audio'
 lspci -tv
-sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|7341|atomics|navi14' -i
+sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
 ```
 
 ### Step 2. Record currently loaded amdgpu firmware info
 
 ```bash
-sudo cat /sys/kernel/debug/dri/0000:05:00.0/amdgpu_firmware_info
+sudo cat /sys/kernel/debug/dri/<PCI_BDF>/amdgpu_firmware_info
 ```
 
 You are looking for the effective `MEC` and `MEC2` firmware versions. The original failing case was:
@@ -38,19 +38,19 @@ You are looking for the effective `MEC` and `MEC2` firmware versions. The origin
 
 If you see that class of error, continue to the firmware phase.
 
-## Phase 2: Raise The Effective Navi14 MEC Firmware Level
+## Phase 2: Raise The Effective Target Navi1x MEC Firmware Level
 
-### Step 3. Back up current `Navi14` firmware blobs
+### Step 3. Back up current target-ASIC firmware blobs
 
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
-sudo mkdir -p /home/max/firmware-backups/navi14-$TS
-sudo cp -a /lib/firmware/amdgpu/navi14_* /home/max/firmware-backups/navi14-$TS/ 2>/dev/null || true
+sudo mkdir -p /home/max/firmware-backups/<asic>-$TS
+sudo cp -a /lib/firmware/amdgpu/<asic>_* /home/max/firmware-backups/<asic>-$TS/ 2>/dev/null || true
 ```
 
-### Step 4. Install newer upstream `linux-firmware` `navi14_*.bin` overlays
+### Step 4. Install newer upstream `linux-firmware` overlays for the target ASIC
 
-Use newer upstream `linux-firmware` `navi14_*.bin` files and copy them into:
+Use newer upstream `linux-firmware` files for your target ASIC (`navi10`, `navi12`, or `navi14`) and copy them into:
 
 ```text
 /lib/firmware/amdgpu/
@@ -83,15 +83,15 @@ After reboot, validate:
 
 ```bash
 uname -r
-sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|7341|atomics|navi14' -i
-rocminfo | rg 'gfx1012|W5500|Agent'
+sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
+rocminfo | rg 'gfx1010|gfx1011|gfx1012|Agent'
 ```
 
 Success criteria:
 
 - `kfd ... added device 1002:7341`
-- `rocminfo` shows `gfx1012`
-- `MEC` is no longer `123`; in the successful field result it became `156`
+- `rocminfo` shows the expected `gfx101x` arch
+- `MEC` is no longer the rejected old value; in the strongest validated `navi14` field result it became `156`
 
 ## Phase 4: Validate ROCm 6 First
 
