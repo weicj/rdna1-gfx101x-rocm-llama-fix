@@ -1,6 +1,6 @@
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-# RDNA1 / Navi14 / gfx101x Modern LLM Inference on ROCm with llama.cpp
+# RDNA1 / Navi1x / gfx101x Modern LLM Inference on ROCm with llama.cpp
 
 ![RDNA1-gfx101x](https://img.shields.io/badge/RDNA1-gfx101x-blue)
 ![ROCm-6.3%2B%20%7C%207%2B](https://img.shields.io/badge/ROCm-6.3%2B%20%7C%207%2B-red)
@@ -9,7 +9,7 @@
 
 This repository documents a practical engineering goal:
 
-make `RDNA1 / Navi14 / gfx101x` GPUs run modern large language models on `ROCm 6` and `ROCm 7` through `llama.cpp`, even on a host platform that is not a clean vendor-supported reference system.
+make `RDNA1 / Navi1x / gfx101x` GPUs run modern large language models on `ROCm 6` and `ROCm 7` through `llama.cpp`, even on a host platform that is not a clean vendor-supported reference system.
 
 This is not a generic ROCm tutorial. It is a field-tested record of what had to be fixed, what actually worked, what still breaks, and what performance level was realistically achieved.
 
@@ -17,7 +17,7 @@ Real-world validation in this repository was performed primarily on `Radeon Pro 
 
 ## Target Hardware Family
 
-The method documented here is meant for the `RDNA1 / Navi14 / gfx101x` discrete GPU family.
+The method documented here is meant for the `RDNA1 / Navi1x / gfx101x` discrete GPU family.
 
 The strongest confidence is on the exact tested lane, namely `Radeon Pro W5500 / Navi14 / gfx1012`.
 
@@ -52,7 +52,7 @@ The real validation environment behind the documented results was primarily:
 - `Ubuntu`
 - `Radeon Pro W5500`
 
-That is why the project may be useful to other people fighting similar `RDNA1 / Navi14 / gfx101x` bring-up problems.
+That is why the project may be useful to other people fighting similar `RDNA1 / Navi1x / gfx101x` bring-up problems.
 
 It is also why the right reading is:
 
@@ -88,17 +88,9 @@ It is a staged, auditable interface with commands such as:
 - `print-build-rocm6`
 - `print-build-rocm7`
 
-The critical `Navi14` firmware overlay files are now bundled in the repository, so the firmware portion of the flow can be completed locally without requiring a network fetch during the bring-up itself.
+The relevant `Navi10` / `Navi12` / `Navi14` firmware overlay files are now bundled in the repository, so the firmware portion of the flow can be completed locally without requiring a network fetch during the bring-up itself.
 
-## Documents
-
-- Agent runbook: [docs/AGENT_RUNBOOK.en.md](./docs/AGENT_RUNBOOK.en.md)
-- Bootstrap guide: [docs/BOOTSTRAP.en.md](./docs/BOOTSTRAP.en.md)
-- Per-model run records: [docs/model-records/INDEX.en.md](./docs/model-records/INDEX.en.md)
-- Hardware scope and tested environment: [docs/HARDWARE_SCOPE.en.md](./docs/HARDWARE_SCOPE.en.md)
-- License: [LICENSE](./LICENSE)
-
-## Agent-Readable Workflow
+## Docs and Agent Workflow
 
 This repository also includes agent-readable workflow documents for CLI agents and operator assistants, including tools such as:
 
@@ -106,17 +98,19 @@ This repository also includes agent-readable workflow documents for CLI agents a
 - `Codex`
 - `Gemini CLI`
 
-The main machine-readable / agent-readable entrypoints are:
+Human-facing and agent-readable entrypoints are:
 
 - [docs/AGENT_RUNBOOK.en.md](./docs/AGENT_RUNBOOK.en.md)
 - [docs/BOOTSTRAP.en.md](./docs/BOOTSTRAP.en.md)
 - [docs/model-records/INDEX.en.md](./docs/model-records/INDEX.en.md)
+- [docs/HARDWARE_SCOPE.en.md](./docs/HARDWARE_SCOPE.en.md)
+- [LICENSE](./LICENSE)
 
 ## Project Goal
 
-The point of this project was not “getting ROCm to print `gfx1012` once”.
+The point of this project was not “getting ROCm to print `gfx101x` once”.
 
-The point was to move a real `RDNA1 / Navi14 / gfx101x` card, validated primarily on `W5500`, through the following stages:
+The point was to move a real `RDNA1 / Navi1x / gfx101x` card, validated primarily on `W5500`, through the following stages:
 
 1. From unsupported or effectively unusable state
 2. Into a real `KFD/ROCm` inference lane

@@ -1,20 +1,23 @@
-# Agent Runbook: Making RDNA1 / Navi14 / gfx101x GPUs Run Modern LLMs on ROCm 6 and ROCm 7
+# Agent Runbook: Making RDNA1 / Navi1x / gfx101x GPUs Run Modern LLMs on ROCm 6 and ROCm 7
 
-This runbook is intentionally procedural. It is written for an autonomous agent, a deployment assistant, or an operations engineer who needs an execution order instead of a narrative explanation.
+This runbook is intentionally procedural. It is written for autonomous agents, operator assistants, and engineers who need an execution order rather than a narrative explanation.
+
+The strongest real-world validation in this repository still comes from `Radeon Pro W5500 / Navi14 / gfx1012`, but the workflow below is parameterized for the wider `RDNA1 / Navi1x / gfx101x` family.
 
 ## Goal
 
-Bring an `RDNA1 / Navi14 / gfx101x` GPU into a usable `ROCm` inference lane for modern LLM inference, validate it with `llama.cpp`, and clearly separate the `ROCm 6` path from the `ROCm 7` path. The strongest real-world validation in this project still comes from `Radeon Pro W5500 / gfx1012`.
+Bring a target `RDNA1 / Navi1x / gfx101x` GPU into a usable `ROCm` inference lane for modern LLM inference through `llama.cpp`, and clearly separate the `ROCm 6` path from the `ROCm 7` path.
 
 ## Scope Assumptions
 
-- Host class: older `Intel 5520/5500/X58`-style machine or another machine where `RDNA1 / gfx101x` is not turnkey
-- GPU: target `RDNA1 / Navi10 / Navi12 / Navi14 / gfx101x` card
-- You have `sudo`
-- You are willing to reboot
-- Your target workload is `llama.cpp`, not generic HIP development first
+- host class: older `Intel 5520/5500/X58`-style machine or another machine where RDNA1 ROCm support is not turnkey
+- GPU: target `navi10`, `navi12`, or `navi14`
+- arch: target `gfx1010`, `gfx1011`, or `gfx1012`
+- you have `sudo`
+- you are willing to reboot
+- the workload target is `llama.cpp`, not general HIP development first
 
-## Phase 1: Snapshot The Machine Before Changing Anything
+## Phase 1: Snapshot the Machine
 
 ### Step 1. Record PCIe topology and GPU state
 
@@ -30,15 +33,20 @@ sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
 sudo cat /sys/kernel/debug/dri/<PCI_BDF>/amdgpu_firmware_info
 ```
 
-You are looking for the effective `MEC` and `MEC2` firmware versions. The original failing case was:
+Focus on:
+
+- `MEC`
+- `MEC2`
+
+In the strongest validated `navi14` case, the original blocker was:
 
 - `MEC = 123`
 - kernel log:
   - `kfd kfd: amdgpu: skipped device 1002:7341, PCI rejects atomics 123<145`
 
-If you see that class of error, continue to the firmware phase.
+If your target ASIC shows the same class of failure, continue to the firmware phase.
 
-## Phase 2: Raise The Effective Target Navi1x MEC Firmware Level
+## Phase 2: Raise the Effective Navi1x MEC Level
 
 ### Step 3. Back up current target-ASIC firmware blobs
 
@@ -50,16 +58,16 @@ sudo cp -a /lib/firmware/amdgpu/<asic>_* /home/max/firmware-backups/<asic>-$TS/ 
 
 ### Step 4. Install newer upstream `linux-firmware` overlays for the target ASIC
 
-Use newer upstream `linux-firmware` files for your target ASIC (`navi10`, `navi12`, or `navi14`) and copy them into:
+Use newer upstream `linux-firmware` blobs for your target ASIC (`navi10`, `navi12`, or `navi14`) and copy them into:
 
 ```text
 /lib/firmware/amdgpu/
 ```
 
-The field-tested pattern was:
+The field-tested pattern is:
 
-- do **not** remove the distro package payload permanently
-- place uncompressed `.bin` overlay files in `/lib/firmware/amdgpu/`
+- do **not** blindly destroy the distro payload
+- place uncompressed `.bin` overlay files into `/lib/firmware/amdgpu/`
 - rebuild initramfs afterward
 
 ### Step 5. Rebuild initramfs
@@ -68,36 +76,37 @@ The field-tested pattern was:
 sudo update-initramfs -u -k "$(uname -r)"
 ```
 
-If you plan to switch kernels explicitly, rebuild for the target kernel as well.
+If you are targeting a specific kernel lane, rebuild for that kernel explicitly.
 
-## Phase 3: Boot The Stable Kernel Lane
+## Phase 3: Boot the Stable Kernel Lane
 
 ### Step 6. Prefer Linux `6.8` for the first stable ROCm 6 validation
 
-This machine had a meaningful stability difference between:
+On the strongest validated host, the meaningful split was:
 
 - unstable/problematic lane: `6.17`
-- stable validation lane: `6.8`
+- first stable inference lane: `6.8`
 
 After reboot, validate:
 
 ```bash
 uname -r
 sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
-rocminfo | rg 'gfx1010|gfx1011|gfx1012|Agent'
+rocminfo | rg 'gfx101[0-2]|Agent'
 ```
 
 Success criteria:
 
-- `kfd ... added device 1002:7341`
+- `kfd ... added device ...`
 - `rocminfo` shows the expected `gfx101x` arch
-- `MEC` is no longer the rejected old value; in the strongest validated `navi14` field result it became `156`
+- `MEC` is no longer the rejected old value
+- in the strongest validated `navi14` case, this value became `156`
 
 ## Phase 4: Validate ROCm 6 First
 
 ### Step 7. Confirm the ROCm 6 userland lane
 
-The first stable deployment lane on this host was:
+On the strongest validated host, the first stable deployment lane was:
 
 - `ROCm 6.3.3`
 - `Linux 6.8`
@@ -105,45 +114,48 @@ The first stable deployment lane on this host was:
 Useful checks:
 
 ```bash
-ldd /home/max/src/llama.cpp-upstream/build-rocm-gfx1012/bin/llama-server | rg 'hip|rocblas|hsa'
+ldd /path/to/llama.cpp/build-rocm-<gfx101x>/bin/llama-server | rg 'hip|rocblas|hsa'
 rocm-smi
-rocminfo | rg 'gfx1012'
+rocminfo | rg 'gfx101[0-2]'
 ```
 
-### Step 8. Build dedicated `gfx1012` llama.cpp for ROCm 6
+### Step 8. Build dedicated `gfx101x` llama.cpp for ROCm 6
 
-Field-tested cache values from the working build:
+Use the same flag structure for the whole `gfx101x` family and substitute your exact target arch:
 
 - `GGML_HIP=ON`
 - `CMAKE_BUILD_TYPE=Release`
-- `AMDGPU_TARGETS=gfx1012`
-- `CMAKE_HIP_ARCHITECTURES=gfx1012`
+- `AMDGPU_TARGETS=<gfx101x>`
+- `GPU_TARGETS=<gfx101x>`
+- `CMAKE_HIP_ARCHITECTURES=<gfx101x>`
 - `GGML_HIP_GRAPHS=ON`
 - `GGML_HIP_MMQ_MFMA=ON`
 - `GGML_HIP_NO_VMM=ON`
 - `GGML_HIP_ROCWMMA_FATTN=OFF`
 
-Representative build command:
+On the strongest validated sample in this repository, `<gfx101x>` resolved to `gfx1012`.
+
+Representative command:
 
 ```bash
-cmake -S /path/to/llama.cpp -B build-rocm-gfx1012 \
+cmake -S /path/to/llama.cpp -B build-rocm-<gfx101x> \
   -DCMAKE_BUILD_TYPE=Release \
   -DGGML_HIP=ON \
-  -DAMDGPU_TARGETS=gfx1012 \
-  -DGPU_TARGETS=gfx1012 \
-  -DCMAKE_HIP_ARCHITECTURES=gfx1012 \
+  -DAMDGPU_TARGETS=<gfx101x> \
+  -DGPU_TARGETS=<gfx101x> \
+  -DCMAKE_HIP_ARCHITECTURES=<gfx101x> \
   -DGGML_HIP_GRAPHS=ON \
   -DGGML_HIP_MMQ_MFMA=ON \
   -DGGML_HIP_NO_VMM=ON \
   -DGGML_HIP_ROCWMMA_FATTN=OFF
 
-cmake --build build-rocm-gfx1012 -j
+cmake --build build-rocm-<gfx101x> -j
 ```
 
 ### Step 9. Smoke test the ROCm 6 lane
 
 ```bash
-./build-rocm-gfx1012/bin/llama-server \
+./build-rocm-<gfx101x>/bin/llama-server \
   -m /path/to/model.gguf \
   -dev ROCm0 \
   -ngl 999 \
@@ -166,11 +178,11 @@ curl -fsS http://127.0.0.1:8101/v1/chat/completions \
 
 If this lane is stable, treat it as your baseline.
 
-## Phase 5: Upgrade To ROCm 7 Carefully
+## Phase 5: Upgrade to ROCm 7 Carefully
 
 ### Step 10. Do not assume ROCm 7 is drop-in for `gfx101x`
 
-The first practical `ROCm 7.2.1` failure on the real validation host was:
+On the strongest validated host, the first practical `ROCm 7.2.1` failure was:
 
 - `rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012`
 
@@ -181,62 +193,55 @@ Interpretation:
 
 ### Step 11. Create a ROCm 7 linkroot / overlay
 
-Field-tested idea:
+Recommended pattern:
 
 - keep a writable ROCm 7 userland prefix
-- graft architecture-matching `gfx101x` `rocBLAS/Tensile` assets from the working ROCm 6 install
+- graft the target-arch `gfx101x` `rocBLAS/Tensile` assets from the working ROCm 6 install
 
-Representative command pattern:
+Representative command:
 
 ```bash
 ROCM6=/opt/rocm-6.3.3/lib/rocblas/library
-ROCM7=/home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
+ROCM7=/path/to/rocm-7/lib/rocblas/library
 
 mkdir -p "$ROCM7"
 
 find "$ROCM6" -maxdepth 1 -type f \
-  \( -name '*gfx1012*' -o -name 'TensileLibrary*gfx1012*' -o -name '*lazy*gfx1012*' \) \
+  \( -name '*<gfx101x>*' -o -name 'TensileLibrary*<gfx101x>*' -o -name '*lazy*<gfx101x>*' \) \
   -print0 | while IFS= read -r -d '' f; do
     ln -sf "$f" "$ROCM7/$(basename "$f")"
   done
 ```
 
-In the field run, `56` new symlinks were added.
+In the strongest validated `gfx1012` field run, `56` new symlinks were added.
 
-### Step 12. Build a dedicated ROCm 7 binary for your target `gfx101x` ASIC
+### Step 12. Build a dedicated ROCm 7 binary for the target `gfx101x` ASIC
 
-Field-tested cache values for the dedicated `gfx1012` lane should mirror the ROCm 6 logic, but use the ROCm 7 userland/toolchain. For other `gfx101x` variants, keep the same structure and swap the target arch accordingly.
+Use the same `gfx101x` placeholder structure as the ROCm 6 lane, but point the build at the ROCm 7 userland/toolchain for your exact target arch.
 
-- `GGML_HIP=ON`
-- `CMAKE_BUILD_TYPE=Release`
-- `AMDGPU_TARGETS=gfx1012`
-- `GPU_TARGETS=gfx1012`
-- `CMAKE_HIP_ARCHITECTURES=gfx1012`
-- `GGML_HIP_MMQ_MFMA=ON`
-- `GGML_HIP_NO_VMM=ON`
-- `GGML_HIP_ROCWMMA_FATTN=OFF`
+On the strongest validated sample in this repository, `<gfx101x>` again resolved to `gfx1012`.
 
 Representative command:
 
 ```bash
-cmake -S /path/to/llama.cpp -B build-rocm7-gfx1012 \
+cmake -S /path/to/llama.cpp -B build-rocm7-<gfx101x> \
   -DCMAKE_BUILD_TYPE=Release \
   -DGGML_HIP=ON \
-  -DAMDGPU_TARGETS=gfx1012 \
-  -DGPU_TARGETS=gfx1012 \
-  -DCMAKE_HIP_ARCHITECTURES=gfx1012 \
+  -DAMDGPU_TARGETS=<gfx101x> \
+  -DGPU_TARGETS=<gfx101x> \
+  -DCMAKE_HIP_ARCHITECTURES=<gfx101x> \
   -DGGML_HIP_MMQ_MFMA=ON \
   -DGGML_HIP_NO_VMM=ON \
   -DGGML_HIP_ROCWMMA_FATTN=OFF
 
-cmake --build build-rocm7-gfx1012 -j
+cmake --build build-rocm7-<gfx101x> -j
 ```
 
 ### Step 13. Validate the ROCm 7 lane with a clean model first
 
-Use a clean official base model first. `Gemma 4 E2B Q4` was the best positive sample on this host.
+Use a clean official base model first. `Gemma 4 E2B Q4` was the best positive sample on the strongest validated host.
 
-Expected direction from the field result:
+Expected direction from the strongest validated field result:
 
 - ROCm 6:
   - `C1 42.317 tok/s`
@@ -248,7 +253,7 @@ Expected direction from the field result:
 If your ROCm 7 lane does not at least land in that direction, inspect:
 
 - wrong userland prefix
-- missing `gfx1012` Tensile files
+- missing target-arch Tensile files
 - wrong runtime linker search path
 
 ## Phase 6: Interpret TTFT Correctly
@@ -260,105 +265,55 @@ If a reasoning-capable model shows bad TTFT on ROCm 7:
 - do **not** immediately conclude that HIP became slower
 - rerun with reasoning disabled or budget forced to zero
 
-This was mandatory for a `Qwen3.5-derived 9B` reasoning-capable fine-tune line:
+### Step 15. Treat validated `gfx1012` samples as reference points, not universal guarantees
 
-- default ROCm 7: `C1 22.292 tok/s`, `TTFT 3143.8 ms`
-- `budget=0` probe: `C1 22.102 tok/s`, `TTFT 332.4 ms`
+The repository's strongest performance and deployment conclusions still come from:
 
-Interpretation:
+- `W5500`
+- `Navi14`
+- `gfx1012`
 
-- throughput improved
-- visible-TTFT regression came from reasoning/stream behavior
+That does **not** invalidate the broader `RDNA1` workflow.
 
-### Step 15. Expect Gemma-family cache behavior to differ
+It only means:
 
-If logs show:
+- the workflow is generalized
+- the evidence level is still strongest on the exact validated lane
 
-- `forcing full prompt re-processing due to lack of cache data`
+## Troubleshooting Tree
 
-and the message references:
-
-- `SWA`
-- `hybrid memory`
-- `recurrent memory`
-
-then TTFT is being influenced by model/runtime cache behavior, not just by the GPU backend.
-
-## Phase 7: Troubleshooting Tree
-
-### Case A. `W5500` still does not appear in `rocminfo`
+### Case A. the target RDNA1 card still does not appear in `rocminfo`
 
 Check:
 
-1. `lspci -nn | rg 7341`
-2. `journalctl -k -b | rg -n '7341|kfd|atomics' -i`
+1. `lspci -nn`
+2. `journalctl -k -b | rg -n 'kfd|atomics|navi1' -i`
 3. `amdgpu_firmware_info`
 
-Likely causes:
+### Case B. ROCm 7 fails immediately
 
-- card not enumerated at PCIe level
-- old `MEC` version still loaded
-- wrong kernel lane
-
-### Case B. HIP / llama.cpp launches but ROCm 7 fails immediately
-
-Check logs for:
+Look for:
 
 - `rocBLAS error`
 - missing `TensileLibrary.dat`
-- `GPU arch : gfx1012`
+- target `gfx101x` arch not found
 
-Likely cause:
-
-- ROCm 7 userland missing `gfx1012` rocBLAS/Tensile assets
-
-### Case C. Throughput is fine but TTFT is absurd
+### Case C. Throughput is fine but TTFT is bad
 
 Check:
 
-- reasoning budget
+- reasoning behavior
 - visible token behavior
 - cache reuse behavior
-- whether your prompt has already ballooned into a very long session context
+- prompt length
 
 ### Case D. Card vanishes after reboot
 
-Treat it as a PCIe/topology problem first, not a ROCm problem first.
-
-Check:
-
-- cold boot versus warm reboot
-- reseat / contact
-- link retraining
-- whether the link has fallen back to `2.5 GT/s x4`
+Treat it as a PCIe/topology problem first, not as a pure ROCm problem first.
 
 ## Final Recommendation
 
 - First bring up `ROCm 6.3.3 + Linux 6.8`
-- Only then layer `ROCm 7`
-- Treat `ROCm 7` as a second-stage compatibility and performance project, not as the first bring-up lane
-- Publish the field guide as a standalone repository first
-- Only open a `llama.cpp` fork later if the source patch delta becomes large and durable
-
-## Appendix: Experimental Quantization Path
-
-If the target model uses an unusual low-bit layout such as `Q1_0 / Q1_0_g128`, do **not** treat it as part of the baseline ROCm bring-up.
-
-Treat it as a separate engineering track.
-
-Recommended execution order:
-
-1. Confirm the standard ROCm lane already works with a clean official base model.
-2. Move the custom quantization work into an isolated experimental source tree.
-3. Fix load-time type recognition first.
-4. Fix CPU-side symbol coverage and dispatch next.
-5. Fix GPU weight placement next.
-6. Only after the model runs stably, restore or implement the relevant `MMQ/MMVQ` fast paths.
-7. Measure again and explicitly distinguish:
-   - “starts but mostly CPU-mapped”
-   - “really runs on GPU”
-
-This distinction mattered in practice. The experimental `Q1` 8B line only became interesting after GPU placement and fast-path recovery, at which point minimal-request performance reached roughly:
-
-- `prompt 108.40 tok/s`
-- `decode 65.99 tok/s`
+- Then layer `ROCm 7`
+- Treat `W5500 / Navi14 / gfx1012` as the strongest validated sample
+- Treat the wider `RDNA1 / Navi1x / gfx101x` support as a generalized workflow with uneven evidence depth

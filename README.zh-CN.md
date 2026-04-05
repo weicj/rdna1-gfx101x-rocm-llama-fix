@@ -1,6 +1,6 @@
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-# RDNA1 / Navi14 / gfx101x 现代大模型推理适配：利用 ROCm 运行 llama.cpp
+# RDNA1 / Navi1x / gfx101x 现代大模型推理适配：利用 ROCm 运行 llama.cpp
 
 ![RDNA1-gfx101x](https://img.shields.io/badge/RDNA1-gfx101x-blue)
 ![ROCm-6.3%2B%20%7C%207%2B](https://img.shields.io/badge/ROCm-6.3%2B%20%7C%207%2B-red)
@@ -9,15 +9,15 @@
 
 这份仓库记录的不是“ROCm 装好了”这种表面结果，而是一条更实际的工程目标：
 
-让 `RDNA1 / Navi14 / gfx101x` 这类显卡，通过 `ROCm 6 / 7 + llama.cpp` 真正跑起近几代值得部署的大语言模型。
+让 `RDNA1 / Navi1x / gfx101x` 这类显卡，通过 `ROCm 6 / 7 + llama.cpp` 真正跑起近几代值得部署的大语言模型。
 
 它不是泛化教程，也不是资料搬运。它是一份基于真实 bring-up、真实踩坑、真实回归和真实跑分整理出来的实战记录。
 
-但同时必须明确，这份仓库里的**真实实机验证**主要是基于 `Radeon Pro W5500`，也就是 `Navi14 / gfx1012`。所以项目概念上是更通用的 `RDNA1 / Navi14 / gfx101x` 方案，但性能和部署结论来自真实 `W5500` 机器，而不是空泛外推。
+但同时必须明确，这份仓库里的**真实实机验证**主要是基于 `Radeon Pro W5500`，也就是 `Navi14 / gfx1012`。所以项目概念上是更通用的 `RDNA1 / Navi1x / gfx101x` 方案，但性能和部署结论来自真实 `W5500` 机器，而不是空泛外推。
 
 ## 面向的显卡家族
 
-这份项目的方法论，面向的是 `RDNA1 / Navi14 / gfx101x` 这整个离散显卡家族。
+这份项目的方法论，面向的是 `RDNA1 / Navi1x / gfx101x` 这整个离散显卡家族。
 
 但最强的置信度仍然集中在真正实测过的这条线上，也就是 `Radeon Pro W5500 / Navi14 / gfx1012`。
 
@@ -55,7 +55,7 @@
 - 系统：`Ubuntu`
 - 显卡：`Radeon Pro W5500`
 
-也正因为如此，它对遇到类似 `RDNA1 / Navi14 / gfx101x` 问题的人可能很有参考价值。
+也正因为如此，它对遇到类似 `RDNA1 / Navi1x / gfx101x` 问题的人可能很有参考价值。
 
 但正确的理解方式应该是：
 
@@ -89,17 +89,9 @@
 - `print-build-rocm6`
 - `print-build-rocm7`
 
-其中固件覆盖层已经被直接打包进仓库，所以在**本地不联网**的情况下，固件这一步本身可以闭环完成。
+其中 `Navi10 / Navi12 / Navi14` 对应的固件覆盖层已经被直接打包进仓库，所以在**本地不联网**的情况下，固件这一步本身可以闭环完成。
 
-## 文档入口
-
-- 中文 agent runbook: [docs/AGENT_RUNBOOK.zh-CN.md](./docs/AGENT_RUNBOOK.zh-CN.md)
-- 中文 bootstrap guide: [docs/BOOTSTRAP.zh-CN.md](./docs/BOOTSTRAP.zh-CN.md)
-- 各模型运行记录（中文）：[docs/model-records/INDEX.zh-CN.md](./docs/model-records/INDEX.zh-CN.md)
-- 硬件适用范围与实测环境：[docs/HARDWARE_SCOPE.zh-CN.md](./docs/HARDWARE_SCOPE.zh-CN.md)
-- 许可证：[LICENSE](./LICENSE)
-
-## 面向 Agent 的工作流文档
+## 文档与 Agent 工作流入口
 
 这个工程不只是给人类读的说明文档，也附带了一套明确面向 agent 的工作流文档，适合被这些 CLI 工具直接读取和调用：
 
@@ -107,15 +99,17 @@
 - `Codex`
 - `Gemini CLI`
 
-对应入口是：
+人类与 agent 共用的主要入口是：
 
 - [docs/AGENT_RUNBOOK.zh-CN.md](./docs/AGENT_RUNBOOK.zh-CN.md)
 - [docs/BOOTSTRAP.zh-CN.md](./docs/BOOTSTRAP.zh-CN.md)
 - [docs/model-records/INDEX.zh-CN.md](./docs/model-records/INDEX.zh-CN.md)
+- [docs/HARDWARE_SCOPE.zh-CN.md](./docs/HARDWARE_SCOPE.zh-CN.md)
+- [LICENSE](./LICENSE)
 
 ## 这份项目的目标
 
-这份项目真正要解决的问题，不是让系统工具里偶尔出现一次 `gfx1012`，而是把一张真实的 `RDNA1 / Navi14 / gfx101x` 显卡，当前主要验证对象是 `W5500`，推到下面这个状态：
+这份项目真正要解决的问题，不是让系统工具里偶尔出现一次 `gfx101x`，而是把一张真实的 `RDNA1 / Navi1x / gfx101x` 显卡，当前主要验证对象是 `W5500`，推到下面这个状态：
 
 1. 能被 `KFD/ROCm` 接纳
 2. 能成为一条稳定的 `llama.cpp` 推理通路

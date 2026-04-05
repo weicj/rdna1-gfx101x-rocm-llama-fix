@@ -1,155 +1,124 @@
 # RDNA1 ROCm Bootstrap 命令说明
 
-这个仓库现在提供了一个通用入口脚本：
+这个仓库提供了一个面向 `RDNA1 / Navi1x / gfx101x` 的通用 staged bootstrap 工具：
 
 - [tools/rdna1-rocm-bootstrap.sh](../tools/rdna1-rocm-bootstrap.sh)
 
-同时也保留了对 `W5500 / Navi14 / gfx1012` 这条精确路线的兼容包装：
+对精确的 `W5500 / Navi14 / gfx1012` 已验证路线，也保留了一个兼容包装层：
 
 - [tools/w5500-rocm-bootstrap.sh](../tools/w5500-rocm-bootstrap.sh)
 
-并且已经把 `RDNA1` 相关的固件覆盖层一起打包进仓库：
+仓库内已经打包了三组对应的固件覆盖层：
 
 - [tools/assets/firmware/navi10](../tools/assets/firmware/navi10)
 - [tools/assets/firmware/navi12](../tools/assets/firmware/navi12)
 - [tools/assets/firmware/navi14](../tools/assets/firmware/navi14)
 
-它的目标不是提供一个不透明的“魔法一键成功”按钮，而是把真正能自动化的步骤标准化下来。
+这不是“盲目一键成功”按钮，而是一个可审计的 staged helper。
 
-## 为什么不做成完全黑盒的一键命令
-
-原因很简单：
-
-- 固件覆盖是高风险步骤
-- `initramfs` 重建和重启需要人为判断
-- 某些机器的 PCIe 枚举问题并不是纯软件能保证修好
-
-所以更专业的做法，是做成**一个入口、多个阶段子命令**：
-
-- 既能帮助别人少走弯路
-- 又不会把风险伪装成“随便按一下就行”
+下面凡是出现占位符的位置，都应该替换成你自己显卡对应的 `ASIC` 与 `arch`。比如 `W5700` 这一类就该用 `navi10 + gfx1010`；而本仓库最强验证样本对应的是 `navi14 + gfx1012`。
 
 ## 已支持的子命令
 
 ### 1. `doctor`
 
-用于采集当前机器的关键状态：
+采集当前主机状态：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi14 doctor
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> doctor
 ```
 
-它会检查：
-
-- 内核版本
-- PCIe 拓扑
-- `kfd/amdgpu` 日志
-- 指定 BDF 的 `amdgpu_firmware_info`
-- `rocminfo`
-- `rocm-smi`
-
-也可以指定你的卡的 BDF：
+也可以显式指定 PCI BDF：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi10 doctor --pci-bdf 0000:05:00.0
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> doctor --pci-bdf <PCI_BDF>
 ```
 
 ### 2. `backup-firmware`
 
-备份当前 `Navi14` 固件：
+备份当前目标 ASIC 固件：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi14 backup-firmware
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> backup-firmware
 ```
 
 也可以指定备份目录：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi10 backup-firmware --out /path/to/backup
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> backup-firmware --out /path/to/backup
 ```
 
 ### 3. `install-firmware-overlay`
 
-把目标 ASIC 的新版固件覆盖到 `/lib/firmware/amdgpu/`，并重建 `initramfs`。
+安装目标 ASIC 的固件覆盖层并重建 `initramfs`：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi14 install-firmware-overlay
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> install-firmware-overlay
 ```
 
-默认情况下，它会直接使用仓库内置的目标 ASIC 固件目录：
-
-- `tools/assets/firmware/navi10/`
-- `tools/assets/firmware/navi12/`
-- `tools/assets/firmware/navi14/`
-
-如果你要换成自己准备的固件目录，再显式指定：
+如果要用外部目录：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi12 install-firmware-overlay --from /path/to/new-firmware-dir
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> install-firmware-overlay --from /path/to/new-firmware-dir
 ```
 
 指定目标内核：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi14 install-firmware-overlay \
-  --from /path/to/new-firmware-dir \
-  --kernel 6.8.0-107-generic
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> install-firmware-overlay \
+  --kernel <KERNEL_VERSION>
 ```
 
-先只演练不真正写入：
+只做演练：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --asic navi10 install-firmware-overlay \
-  --from /path/to/new-firmware-dir \
-  --dry-run
+./tools/rdna1-rocm-bootstrap.sh --asic <navi10|navi12|navi14> install-firmware-overlay --dry-run
 ```
 
 ### 4. `link-rocm7-arch`
 
-给 `ROCm 7` 用户态补目标 `gfx101x` 架构的 `rocBLAS/Tensile` 文件：
+把目标 `gfx101x` 架构的 `rocBLAS/Tensile` 文件补进 ROCm 7 用户态：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --arch gfx1012 link-rocm7-arch \
+./tools/rdna1-rocm-bootstrap.sh --arch <gfx1010|gfx1011|gfx1012> link-rocm7-arch \
   --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
-  --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
+  --rocm7-lib /path/to/rocm-7/lib/rocblas/library
 ```
 
-也支持先 dry-run：
+也支持 dry-run：
 
 ```bash
-./tools/rdna1-rocm-bootstrap.sh --arch gfx1010 link-rocm7-arch \
+./tools/rdna1-rocm-bootstrap.sh --arch <gfx1010|gfx1011|gfx1012> link-rocm7-arch \
   --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
-  --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library \
+  --rocm7-lib /path/to/rocm-7/lib/rocblas/library \
   --dry-run
 ```
 
-### 5. `print-build-rocm6`
-
-打印这份项目里已经验证过的 `ROCm 6 + gfx101x` 构建命令：
-
-```bash
-./tools/rdna1-rocm-bootstrap.sh --arch gfx1012 print-build-rocm6
-```
-
-### 6. `print-build-rocm7`
-
-打印这份项目里已经验证过的 `ROCm 7 + gfx101x` 构建命令：
-
-```bash
-./tools/rdna1-rocm-bootstrap.sh --arch gfx1010 print-build-rocm7
-```
-
-对 `W5500 / gfx1012` 精确路线，也仍保留兼容别名：
+对 `W5500 / gfx1012` 路线，也仍保留兼容别名：
 
 ```bash
 ./tools/w5500-rocm-bootstrap.sh link-rocm7-gfx1012 \
   --rocm6-lib /opt/rocm-6.3.3/lib/rocblas/library \
-  --rocm7-lib /home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
+  --rocm7-lib /path/to/rocm-7/lib/rocblas/library
 ```
 
-## 适合的使用顺序
+### 5. `print-build-rocm6`
 
-建议顺序：
+打印 `ROCm 6 + gfx101x` 的 `llama.cpp` 构建命令：
+
+```bash
+./tools/rdna1-rocm-bootstrap.sh --arch <gfx1010|gfx1011|gfx1012> print-build-rocm6
+```
+
+### 6. `print-build-rocm7`
+
+打印 `ROCm 7 + gfx101x` 的 `llama.cpp` 构建命令：
+
+```bash
+./tools/rdna1-rocm-bootstrap.sh --arch <gfx1010|gfx1011|gfx1012> print-build-rocm7
+```
+
+## 建议顺序
 
 1. `doctor`
 2. `backup-firmware`
@@ -157,6 +126,20 @@
 4. 重启并重新 `doctor`
 5. `link-rocm7-arch`
 6. `print-build-rocm6` / `print-build-rocm7`
+
+## 实际适用范围说明
+
+现在这套工具已经参数化到：
+
+- `navi10 / navi12 / navi14`
+- `gfx1010 / gfx1011 / gfx1012`
+
+所以像 `W5700`、`5600M` 这类同代 `RDNA1` 用户，拿到这套工具链后，至少在流程结构上可以直接复用。
+
+但仍要强调：
+
+- 本仓库最强的真实验证主样本，仍然是 `W5500 / Navi14 / gfx1012`
+- 更大范围的 `RDNA1` 支持，在这里应被理解成“泛化后的 workflow”，而不是“逐卡等量验证过的结论”
 
 ## 这套脚本解决的是什么
 
@@ -169,6 +152,6 @@
 - 你的卡实际 BDF 是多少
 - 你的机器是否存在 PCIe 物理链路问题
 
-所以这套脚本更适合被理解成：
+所以它更适合被理解成：
 
 > 一个可审计的 staged bootstrap helper，而不是一个盲目的一键黑盒。

@@ -1,17 +1,21 @@
-# Agent Runbook：让 RDNA1 / Navi14 / gfx101x 在 ROCm 6 与 ROCm 7 上跑现代大模型的步骤
+# Agent Runbook：让 RDNA1 / Navi1x / gfx101x 在 ROCm 6 与 ROCm 7 上跑现代大模型的步骤
 
 这份 runbook 不是叙述文，而是给 agent / 运维工程师 / 自动化助手执行的程序化步骤。
 
-目标不是“讲道理”，而是**按顺序把卡拉起来，并在每一阶段知道该看什么、该判什么**。
+它面向的是 `RDNA1 / Navi1x / gfx101x` 整个家族，但当前最强的真实验证主样本仍然是 `Radeon Pro W5500 / Navi14 / gfx1012`。
 
 ## 目标
 
-把一张 `RDNA1 / Navi14 / gfx101x` 显卡带进可用的 `ROCm` 现代大模型推理通路，并明确区分 `ROCm 6` 的稳定路径与 `ROCm 7` 的增强路径。本项目最强的真实验证主样本仍然是 `Radeon Pro W5500 / gfx1012`。
+把一张目标 `RDNA1 / Navi1x / gfx101x` 显卡带进可用的 `ROCm` 现代大模型推理通路，并明确区分：
+
+- `ROCm 6` 的稳定路径
+- `ROCm 7` 的增强路径
 
 ## 适用前提
 
 - 主机平台可能较老，例如 `X58 / Intel 5520/5500`
-- 显卡是目标 `RDNA1 / Navi10 / Navi12 / Navi14 / gfx101x` 卡
+- 显卡是目标 `navi10`、`navi12` 或 `navi14`
+- 架构是目标 `gfx1010`、`gfx1011` 或 `gfx1012`
 - 有 `sudo`
 - 可以接受重启
 - 目标工作负载是 `llama.cpp` 推理，而不是先做通用 HIP 开发
@@ -32,18 +36,18 @@ sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
 sudo cat /sys/kernel/debug/dri/<PCI_BDF>/amdgpu_firmware_info
 ```
 
-最关键的是看：
+重点看：
 
 - `MEC`
 - `MEC2`
 
-原始失败案例里，核心问题是：
+在最强验证样本 `navi14` 上，原始失败案例是：
 
 - `MEC = 123`
-- 内核日志里出现：
+- 内核日志：
   - `kfd kfd: amdgpu: skipped device 1002:7341, PCI rejects atomics 123<145`
 
-如果你也看到这类错误，继续做固件阶段。
+如果你在目标 ASIC 上也看到这类错误，就继续做固件阶段。
 
 ## 第二阶段：把目标 Navi1x ASIC 的有效 MEC 版本抬上去
 
@@ -81,7 +85,7 @@ sudo update-initramfs -u -k "$(uname -r)"
 
 ### 第 6 步：优先用 `Linux 6.8` 做第一轮稳定验证
 
-这台机器上，实际差异非常明显：
+在最强验证主机上，实际差异非常明显：
 
 - 容易出问题的通路：`6.17`
 - 首条稳定通路：`6.8`
@@ -91,12 +95,12 @@ sudo update-initramfs -u -k "$(uname -r)"
 ```bash
 uname -r
 sudo journalctl -k -b 0 | rg -n 'kfd|amdgpu|atomics|navi1' -i
-rocminfo | rg 'gfx1010|gfx1011|gfx1012|Agent'
+rocminfo | rg 'gfx101[0-2]|Agent'
 ```
 
 成功判据：
 
-- 出现 `kfd ... added device 1002:7341`
+- 出现 `kfd ... added device ...`
 - `rocminfo` 里能看到目标 `gfx101x`
 - `MEC` 不再是被拒绝的旧值
 - 在最强验证样本 `navi14` 上，这个值被抬到了 `156`
@@ -105,7 +109,7 @@ rocminfo | rg 'gfx1010|gfx1011|gfx1012|Agent'
 
 ### 第 7 步：确认 ROCm 6 用户态路径
 
-这台机器上第一条稳定可部署的路线是：
+在最强验证主机上，第一条稳定可部署路线是：
 
 - `ROCm 6.3.3`
 - `Linux 6.8`
@@ -113,45 +117,48 @@ rocminfo | rg 'gfx1010|gfx1011|gfx1012|Agent'
 建议检查：
 
 ```bash
-ldd /home/max/src/llama.cpp-upstream/build-rocm-gfx1012/bin/llama-server | rg 'hip|rocblas|hsa'
+ldd /path/to/llama.cpp/build-rocm-<gfx101x>/bin/llama-server | rg 'hip|rocblas|hsa'
 rocm-smi
-rocminfo | rg 'gfx1012'
+rocminfo | rg 'gfx101[0-2]'
 ```
 
-### 第 8 步：编出专用 `gfx1012` 的 ROCm 6 `llama.cpp`
+### 第 8 步：编出专用 `gfx101x` 的 ROCm 6 `llama.cpp`
 
-已验证的关键 cache 参数：
+整个 `gfx101x` 家族都建议沿用同一套参数结构，只把目标架构替换成你自己的值：
 
 - `GGML_HIP=ON`
 - `CMAKE_BUILD_TYPE=Release`
-- `AMDGPU_TARGETS=gfx1012`
-- `CMAKE_HIP_ARCHITECTURES=gfx1012`
+- `AMDGPU_TARGETS=<gfx101x>`
+- `GPU_TARGETS=<gfx101x>`
+- `CMAKE_HIP_ARCHITECTURES=<gfx101x>`
 - `GGML_HIP_GRAPHS=ON`
 - `GGML_HIP_MMQ_MFMA=ON`
 - `GGML_HIP_NO_VMM=ON`
 - `GGML_HIP_ROCWMMA_FATTN=OFF`
 
+在本仓库最强验证样本里，`<gfx101x>` 对应的是 `gfx1012`。
+
 参考构建命令：
 
 ```bash
-cmake -S /path/to/llama.cpp -B build-rocm-gfx1012 \
+cmake -S /path/to/llama.cpp -B build-rocm-<gfx101x> \
   -DCMAKE_BUILD_TYPE=Release \
   -DGGML_HIP=ON \
-  -DAMDGPU_TARGETS=gfx1012 \
-  -DGPU_TARGETS=gfx1012 \
-  -DCMAKE_HIP_ARCHITECTURES=gfx1012 \
+  -DAMDGPU_TARGETS=<gfx101x> \
+  -DGPU_TARGETS=<gfx101x> \
+  -DCMAKE_HIP_ARCHITECTURES=<gfx101x> \
   -DGGML_HIP_GRAPHS=ON \
   -DGGML_HIP_MMQ_MFMA=ON \
   -DGGML_HIP_NO_VMM=ON \
   -DGGML_HIP_ROCWMMA_FATTN=OFF
 
-cmake --build build-rocm-gfx1012 -j
+cmake --build build-rocm-<gfx101x> -j
 ```
 
 ### 第 9 步：对 ROCm 6 路线做最小 API 冒烟
 
 ```bash
-./build-rocm-gfx1012/bin/llama-server \
+./build-rocm-<gfx101x>/bin/llama-server \
   -m /path/to/model.gguf \
   -dev ROCm0 \
   -ngl 999 \
@@ -178,7 +185,7 @@ curl -fsS http://127.0.0.1:8101/v1/chat/completions \
 
 ### 第 10 步：不要假设 ROCm 7 对 `gfx101x` 开箱即用
 
-这台真实验证主机上，`ROCm 7.2.1` 第一枪的直接失败是：
+在最强验证主机上，`ROCm 7.2.1` 的第一枪失败是：
 
 - `rocBLAS error: Cannot read ... TensileLibrary.dat ... GPU arch : gfx1012`
 
@@ -198,55 +205,46 @@ curl -fsS http://127.0.0.1:8101/v1/chat/completions \
 
 ```bash
 ROCM6=/opt/rocm-6.3.3/lib/rocblas/library
-ROCM7=/home/max/rocm-7.2.1-linkroot/rocm-7.2.1/lib/rocblas/library
+ROCM7=/path/to/rocm-7/lib/rocblas/library
 
 mkdir -p "$ROCM7"
 
 find "$ROCM6" -maxdepth 1 -type f \
-  \( -name '*gfx1012*' -o -name 'TensileLibrary*gfx1012*' -o -name '*lazy*gfx1012*' \) \
+  \( -name '*<gfx101x>*' -o -name 'TensileLibrary*<gfx101x>*' -o -name '*lazy*<gfx101x>*' \) \
   -print0 | while IFS= read -r -d '' f; do
     ln -sf "$f" "$ROCM7/$(basename "$f")"
   done
 ```
 
-实机里，这一步一共新增了 `56` 个软链。
+在最强验证样本 `gfx1012` 上，这一步一共新增了 `56` 个软链。
 
 ### 第 12 步：编出专用 `gfx101x` 的 ROCm 7 二进制
 
-推荐的 `gfx1012` 专用 cache 参数与 `ROCm 6` 逻辑一致，只是换成 `ROCm 7` 用户态；如果你是其它 `gfx101x` 变体，就把架构替换成你的目标值。
+这里继续沿用 `ROCm 6` 那套 `gfx101x` 占位参数结构，只是把构建所用的用户态切换到 `ROCm 7`，并替换成你自己的目标架构。
 
-- `GGML_HIP=ON`
-- `CMAKE_BUILD_TYPE=Release`
-- `AMDGPU_TARGETS=gfx1012`
-- `GPU_TARGETS=gfx1012`
-- `CMAKE_HIP_ARCHITECTURES=gfx1012`
-- `GGML_HIP_MMQ_MFMA=ON`
-- `GGML_HIP_NO_VMM=ON`
-- `GGML_HIP_ROCWMMA_FATTN=OFF`
-
-参考构建命令：
+在本仓库最强验证样本里，`<gfx101x>` 对应的是 `gfx1012`。
 
 ```bash
-cmake -S /path/to/llama.cpp -B build-rocm7-gfx1012 \
+cmake -S /path/to/llama.cpp -B build-rocm7-<gfx101x> \
   -DCMAKE_BUILD_TYPE=Release \
   -DGGML_HIP=ON \
-  -DAMDGPU_TARGETS=gfx1012 \
-  -DGPU_TARGETS=gfx1012 \
-  -DCMAKE_HIP_ARCHITECTURES=gfx1012 \
+  -DAMDGPU_TARGETS=<gfx101x> \
+  -DGPU_TARGETS=<gfx101x> \
+  -DCMAKE_HIP_ARCHITECTURES=<gfx101x> \
   -DGGML_HIP_MMQ_MFMA=ON \
   -DGGML_HIP_NO_VMM=ON \
   -DGGML_HIP_ROCWMMA_FATTN=OFF
 
-cmake --build build-rocm7-gfx1012 -j
+cmake --build build-rocm7-<gfx101x> -j
 ```
 
 ### 第 13 步：先拿一只最干净的模型验证 ROCm 7
 
-这台机器上最干净的正样本，是一只官方底座模型：
+最强验证主机上的正样本是：
 
 - `Gemma 4 E2B Q4`
 
-已验证结果方向：
+已验证方向：
 
 - ROCm 6：
   - `C1 42.317 tok/s`
@@ -258,123 +256,66 @@ cmake --build build-rocm7-gfx1012 -j
 如果你的 ROCm 7 路线没有至少接近这个方向，就优先怀疑：
 
 - 用错了用户态前缀
-- `gfx1012` Tensile 文件没补齐
-- 运行时链接路径没指到你自己的 ROCm 7 overlay
+- 没补齐目标架构的 Tensile 文件
+- 运行时链接路径不对
 
 ## 第六阶段：正确理解 TTFT
 
-### 第 14 步：把“后端慢”和“可见首 token 慢”分开看
+### 第 14 步：区分“后端慢”和“可见首 token 慢”
 
-如果某个带 reasoning 的模型在 ROCm 7 上 TTFT 很差：
+如果某个 reasoning 模型在 ROCm 7 上 TTFT 很差：
 
-- 不要立刻下结论说 HIP kernel 退化了
-- 先把 reasoning 关掉，或者把 `budget` 打成 `0`
+- 不要立刻下结论说 HIP 退化了
+- 先把 reasoning 关掉，或者把 budget 打成 0
 
-一条 `Qwen3.5` 衍生的 9B reasoning 微调线的典型例子：
+### 第 15 步：把 W5500 样本当成最强验证参考，而不是所有 RDNA1 的等量证明
 
-- 默认 ROCm 7：`C1 22.292 tok/s`，`TTFT 3143.8 ms`
-- `budget=0` 探针：`C1 22.102 tok/s`，`TTFT 332.4 ms`
+这套 workflow 现在已经扩展到了：
 
-这说明：
+- `navi10 / navi12 / navi14`
+- `gfx1010 / gfx1011 / gfx1012`
 
-- 吞吐其实是升的
-- 真正炸掉的是“用户看见首 token 的时间”
-- 根因在 reasoning / streaming 语义，而不是算子本身变慢
+所以像 `W5700`、`5600M` 这样的用户，至少在流程结构上已经可以直接复用。
 
-### 第 15 步：Gemma 的 TTFT 要看缓存行为，不要只看 GPU
+但仍然要明确：
 
-如果日志里反复出现：
+- 最强真实验证样本还是 `W5500 / Navi14 / gfx1012`
+- 更大范围的 `RDNA1` 支持，在这里应被理解成“泛化后的 workflow”，不是“逐卡等量验证过的结论”
 
-- `forcing full prompt re-processing due to lack of cache data`
+## 故障树
 
-并且同时提到：
-
-- `SWA`
-- `hybrid memory`
-- `recurrent memory`
-
-那就说明：
-
-- 这个模型的 prompt cache 复用行为和更简单的 Qwen 系不一样
-- TTFT 会被模型运行时特征影响，而不是只被 GPU 后端影响
-
-## 第七阶段：故障树
-
-### 情况 A：`rocminfo` 还是看不到 W5500
+### 情况 A：目标 RDNA1 显卡还是没有出现在 `rocminfo` 里
 
 检查：
 
-```bash
-lspci -nn | rg 7341
-journalctl -k -b | rg -n '7341|kfd|atomics' -i
-sudo cat /sys/kernel/debug/dri/0000:05:00.0/amdgpu_firmware_info
-```
-
-优先怀疑：
-
-1. PCIe 层根本没枚举出来
-2. 旧 MEC 版本还在
-3. 还在错误内核 lane 上
+1. `lspci -nn`
+2. `journalctl -k -b | rg -n 'kfd|atomics|navi1' -i`
+3. `amdgpu_firmware_info`
 
 ### 情况 B：ROCm 7 一启动就炸
 
-优先看日志里有没有：
+优先看：
 
 - `rocBLAS error`
 - `TensileLibrary.dat`
-- `GPU arch : gfx1012`
+- 目标 `gfx101x` 架构没有对应资产
 
-如果有，优先怀疑：
+### 情况 C：吞吐不差，但 TTFT 很差
 
-- ROCm 7 用户态缺 `gfx1012` 的 `rocBLAS/Tensile` 资产
+优先看：
 
-### 情况 C：吞吐没问题，但 TTFT 奇慢
+- reasoning 行为
+- 首个可见 token 的定义
+- cache reuse
+- prompt 长度
 
-排查顺序：
+### 情况 D：重启后卡消失
 
-1. `reasoning-budget`
-2. streaming / visible token 语义
-3. prompt cache 是否复用失败
-4. 当前会话是否已经膨胀成超长上下文
-
-### 情况 D：重启后卡又没了
-
-先当成 PCIe / 物理链路问题，而不是先当成 ROCm 问题。
-
-重点看：
-
-- 冷启动 vs 热重启
-- 插槽接触 / 重新插拔
-- 链路训练
-- 是否掉到 `2.5 GT/s x4`
+先当成 PCIe / 链路问题，而不是先当成 ROCm 问题。
 
 ## 最终建议
 
-- 第一阶段先稳稳走通 `ROCm 6.3.3 + Linux 6.8`
-- 第二阶段再上 `ROCm 7`
-- `ROCm 7` 应被视为增强路线，而不是最初 bring-up 路线
-- 项目发布上，先发独立仓库，不急着开 `llama.cpp` fork
-- 等真正有长期维护的源码 patch 链时，再考虑 fork
-
-## 附录：实验性量化格式单独处理
-
-如果目标模型使用的是 `Q1_0 / Q1_0_g128` 这类非常规低比特布局，不要把它混进主线 ROCm bring-up。
-
-应当把它视为一条独立工程路线。
-
-建议顺序：
-
-1. 先确认标准 ROCm 通路已经能稳定跑官方底座模型。
-2. 把这类自定义量化工作挪到独立实验源码树。
-3. 先修“类型能不能被正确识别和加载”。
-4. 再修 CPU 侧缺失的符号和分发。
-5. 再修 GPU weight placement，让模型不再大头都留在 `CPU_Mapped`。
-6. 只有在模型稳定可回复之后，才去恢复或实现对应的 `MMQ/MMVQ` 快路径。
-7. 重新测时，必须明确区分：
-   - “技术上能启动，但大头还在 CPU/弱 GPU 路径”
-   - “真正已经进 GPU 并开始吃快路径”
-
-这一区别在实战里非常关键。那条实验性 `Q1` 8B 路线，只有在 GPU placement 与快路径恢复之后，才真正变得有意义；恢复后的最小请求已经大约能到：
-
-- `prompt 108.40 tok/s`
-- `decode 65.99 tok/s`
+- 先稳稳走通 `ROCm 6.3.3 + Linux 6.8`
+- 再叠 `ROCm 7`
+- 把 `W5500 / Navi14 / gfx1012` 当成最强验证样本
+- 把更大范围的 `RDNA1 / Navi1x / gfx101x` 当成已经可以复用的通用 workflow
